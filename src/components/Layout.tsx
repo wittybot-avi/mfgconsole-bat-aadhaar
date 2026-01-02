@@ -8,102 +8,14 @@ import { Button, Input, Badge } from './ui/design-system';
 import { APP_VERSION, CURRENT_PATCH } from '../../app/patchInfo';
 import { ScreenId, SCREEN_GROUPS } from '../rbac/screenIds';
 import { canView, getMyPermissions } from '../rbac/can';
-import { APP_ROUTES, getScreenIdForPath } from '../../app/routeRegistry';
+import { APP_ROUTES, getScreenIdForPath, isRouteRegistered } from '../../app/routeRegistry';
 import { ROUTES } from '../../app/routes';
 import { DIAGNOSTIC_MODE } from '../app/diagnostics';
 import { traceSearchService } from '../services/traceSearchService';
 import { scenarioStore, DemoScenario } from '../demo/scenarioStore';
 import { routerSafe } from '../utils/routerSafe';
-
-/**
- * UNIFIED DIAGNOSTIC PANEL (P-056F Stabilization)
- * Single source of truth for debug info at top of page.
- * Enabled via ?diag=1 in URL or storage.
- */
-const UnifiedDiagnosticPanel = () => {
-  const location = useLocation();
-  const screenId = getScreenIdForPath(location?.pathname);
-  const { currentRole, currentCluster } = useAppStore();
-  const [collapsed, setCollapsed] = useState(true);
-  
-  const [enabled] = useState(() => 
-    DIAGNOSTIC_MODE && (
-      window?.location?.search?.includes('diag=1') || 
-      location?.search?.includes('diag=1') ||
-      localStorage?.getItem('DIAG_ENABLED') === '1'
-    )
-  );
-
-  if (!enabled) return null;
-
-  const permissions = screenId ? getMyPermissions(currentCluster?.id || '', screenId) : [];
-  const routeConfig = screenId ? APP_ROUTES?.[screenId] : null;
-
-  return (
-    <div className="bg-slate-900 border-b border-slate-700 text-white font-mono text-[10px] overflow-hidden shrink-0 z-[60]">
-      <div 
-        className="px-6 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-800 transition-colors"
-        onClick={() => setCollapsed(!collapsed)}
-      >
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-blue-400">
-            <Monitor size={12} />
-            <span className="font-bold uppercase tracking-widest">Diagnostic Ledger</span>
-          </div>
-          <span className="opacity-30">|</span>
-          <div className="flex items-center gap-1">
-             <Tag size={10} className="text-amber-400" />
-             <span className="font-bold">{CURRENT_PATCH?.id || 'P-000'}</span>
-          </div>
-          <span className="opacity-30">|</span>
-          <div className="flex items-center gap-1">
-             <span className="text-slate-500 uppercase">Screen:</span>
-             <span className={screenId ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
-                {screenId || 'UNMAPPED'}
-             </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-            {!screenId && <Badge variant="destructive" className="h-4 text-[8px] font-black uppercase">Unregistered</Badge>}
-            {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-        </div>
-      </div>
-
-      {!collapsed && (
-        <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-8 bg-slate-950/50 border-t border-slate-800 animate-in slide-in-from-top-1 duration-300">
-            <div className="space-y-2">
-                <h4 className="font-black text-slate-500 uppercase tracking-tighter flex items-center gap-2 border-b border-slate-800 pb-1"><Database size={10}/> Identity</h4>
-                <div className="space-y-1">
-                    <p>Path: <span className="text-blue-400">{location?.pathname || 'N/A'}</span></p>
-                    <p>Pattern: <span className="text-slate-400">{routeConfig?.path || 'N/A'}</span></p>
-                    <p>Component: <span className="text-slate-400 font-bold italic">{routeConfig?.componentName || 'UNDEFINED'}</span></p>
-                </div>
-            </div>
-            <div className="space-y-2">
-                <h4 className="font-black text-slate-500 uppercase tracking-tighter flex items-center gap-2 border-b border-slate-800 pb-1"><Shield size={10}/> Access Control</h4>
-                <div className="space-y-1">
-                    <p>Cluster: <span className="text-amber-400">{currentCluster?.id || 'N/A'}</span></p>
-                    <p>Role: <span className="text-slate-400">{currentRole?.name || 'N/A'}</span></p>
-                    <p>Permissions: <span className="text-emerald-400">[{permissions?.join(', ') || ''}]</span></p>
-                </div>
-            </div>
-            <div className="space-y-2">
-                <h4 className="font-black text-slate-500 uppercase tracking-tighter flex items-center gap-2 border-b border-slate-800 pb-1"><AlertTriangle size={10}/> Ledger State</h4>
-                <div className="space-y-1">
-                    <p>Scenario: <span className="text-indigo-400">{scenarioStore?.getScenario() || 'UNKNOWN'}</span></p>
-                    <p>Registry: <span className={screenId ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>{screenId ? 'VALID' : 'UNREGISTERED'}</span></p>
-                </div>
-            </div>
-            <div className="flex flex-col justify-end">
-                <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-300 text-[9px] leading-relaxed">
-                    <strong>PATCH {CURRENT_PATCH.id}:</strong> Consolidating versioning and stabilizing EOL route namespace.
-                </div>
-            </div>
-        </div>
-      )}
-    </div>
-  );
-};
+import { HudPill } from './HudPill';
+import { UnifiedDiagnosticPanel } from './UnifiedDiagnosticPanel';
 
 interface SidebarItemProps {
   icon: any;
@@ -135,12 +47,24 @@ export const Layout = () => {
   const [currentScenario, setCurrentScenario] = useState<DemoScenario>(scenarioStore.getScenario());
   const [isSwitching, setIsSwitching] = useState(false);
 
+  // PP-056B Diagnostic State
+  const [isDiagOpen, setIsDiagOpen] = useState(() => 
+    location.search.includes('diag=1') || localStorage.getItem('DIAG_OPEN') === '1'
+  );
+
   useEffect(() => {
     scenarioStore.init();
     if (location?.pathname) {
       routerSafe.trackRoute(location.pathname, location.search);
     }
   }, [location]);
+
+  // Sync diag state from URL
+  useEffect(() => {
+    if (location.search.includes('diag=1') && !isDiagOpen) {
+      setIsDiagOpen(true);
+    }
+  }, [location.search]);
 
   const handleLogout = () => {
     logout();
@@ -176,9 +100,15 @@ export const Layout = () => {
     setTimeout(() => { window.location.reload(); }, 500);
   };
 
+  const handleToggleDiag = () => {
+    const newState = !isDiagOpen;
+    setIsDiagOpen(newState);
+    localStorage.setItem('DIAG_OPEN', newState ? '1' : '0');
+  };
+
   const renderNavGroup = (groupName: string, screenIds: ScreenId[]) => {
     if (!currentCluster) return null;
-    const visibleItems = screenIds.filter(id => canView(currentCluster.id, id));
+    const visibleItems = screenIds.filter(id => id && canView(currentCluster.id, id));
     if (visibleItems.length === 0) return null;
 
     return (
@@ -208,9 +138,31 @@ export const Layout = () => {
   if (!currentRole || !currentCluster) return null;
   const isSuperUser = currentCluster.id === 'CS';
 
+  // Diagnostic metadata
+  const screenId = getScreenIdForPath(location.pathname) || 'UNKNOWN';
+  const registered = isRouteRegistered(location.pathname);
+  const routeConfig = APP_ROUTES[screenId];
+  const permissions = getMyPermissions(currentCluster.id, screenId as ScreenId);
+
   return (
     <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans text-slate-900 dark:text-slate-100 overflow-hidden`}>
-      <UnifiedDiagnosticPanel />
+      {DIAGNOSTIC_MODE && (
+        <UnifiedDiagnosticPanel 
+          isOpen={isDiagOpen}
+          onToggle={handleToggleDiag}
+          screenId={screenId}
+          path={location.pathname}
+          routePattern={routeConfig?.path || 'UNKNOWN'}
+          componentName={routeConfig?.componentName || 'UNDEFINED'}
+          role={currentRole.name}
+          cluster={currentCluster.id}
+          permissions={permissions}
+          isRegistered={registered}
+          patchId={CURRENT_PATCH.id}
+          scenario={scenarioStore.getScenario()}
+        />
+      )}
+
       <div className="flex flex-1 min-h-0 relative">
         <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} fixed inset-y-0 z-50 flex flex-col transition-all duration-300 border-r bg-white dark:bg-slate-900 dark:border-slate-800 overflow-hidden`}>
           <div className="h-16 flex items-center px-6 border-b dark:border-slate-800 shrink-0">
@@ -297,6 +249,17 @@ export const Layout = () => {
           </main>
         </div>
       </div>
+      
+      {DIAGNOSTIC_MODE && (
+        <HudPill 
+          onToggle={handleToggleDiag}
+          patchId={CURRENT_PATCH.id}
+          path={location.pathname}
+          isRegistered={registered}
+          screenId={screenId}
+          isDiagParamActive={location.search.includes('diag=1')}
+        />
+      )}
     </div>
   );
 };

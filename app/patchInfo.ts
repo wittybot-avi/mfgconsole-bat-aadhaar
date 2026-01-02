@@ -1,5 +1,5 @@
 /**
- * PATCH REGISTRY SYSTEM - SINGLE SOURCE OF TRUTH (PP-056F)
+ * PATCH REGISTRY SYSTEM - SINGLE SOURCE OF TRUTH (PP-056B)
  */
 
 export interface PatchMetadata {
@@ -13,14 +13,14 @@ export interface PatchMetadata {
 export const APP_VERSION = '1.8.9n';
 
 export const CURRENT_PATCH: PatchMetadata = {
-  id: "PP-056F",
-  name: "HOTFIX_EOL_ROUTE_LEDGER_AND_VERSION_STABILIZATION",
+  id: "PP-056B",
+  name: "DIAGNOSTIC_CONSOLIDATION_AND_HUD_STABILIZATION",
   date: "2024-05-24",
-  description: "Synchronized EOL route ledger and consolidated versioning into a single source of truth to eliminate routing and labeling drift.",
+  description: "Reintroduced standardized HUD and Unified Diagnostic Panel while removing redundant legacy debug overlays.",
   type: "hotfix"
 };
 
-export const PATCH_LEVEL = '56F';
+export const PATCH_LEVEL = '56B';
 export const LAST_PATCH_ID = CURRENT_PATCH.name;
 
 export const PATCH_HISTORY: PatchMetadata[] = [
