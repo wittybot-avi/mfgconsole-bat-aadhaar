@@ -1,5 +1,5 @@
 /**
- * Global Route Constants (PP-056C)
+ * Global Route Constants (PP-056D)
  */
 export const ROUTES = {
   DASHBOARD: '/',
@@ -76,6 +76,10 @@ export const routes = {
   dashboard: () => ROUTES.DASHBOARD,
   login: () => ROUTES.LOGIN,
   
+  // Observe
+  telemetry: () => ROUTES.TELEMETRY,
+  analytics: () => ROUTES.ANALYTICS,
+  
   // Design
   skuList: () => ROUTES.SKU_DESIGN,
   skuDetails: (id?: string) => ROUTES.SKU_DETAIL.replace(':id', safeId(id)),
@@ -89,7 +93,6 @@ export const routes = {
   
   packAssemblyList: () => ROUTES.PACK_ASSEMBLY,
   packDetails: (id?: string) => ROUTES.PACK_ASSEMBLY_DETAIL.replace(':id', safeId(id)),
-  /* Added packBuildDetails alias to resolve Property 'packBuildDetails' does not exist error */
   packBuildDetails: (id?: string) => ROUTES.PACK_ASSEMBLY_DETAIL.replace(':id', safeId(id)),
   
   batteryIdentityList: () => ROUTES.BATTERY_IDENTITY,
@@ -97,13 +100,13 @@ export const routes = {
 
   inventoryList: () => ROUTES.INVENTORY,
   inventoryItem: (id?: string) => ROUTES.INVENTORY_DETAIL.replace(':id', safeId(id)),
-  /* Added inventoryDetails alias to resolve Property 'inventoryDetails' does not exist error */
   inventoryDetails: (id?: string) => ROUTES.INVENTORY_DETAIL.replace(':id', safeId(id)),
 
   dispatchList: () => ROUTES.DISPATCH,
   dispatchDetails: (id?: string) => ROUTES.DISPATCH_DETAIL.replace(':id', safeId(id)),
 
   // Assure
+  eolHome: () => ROUTES.EOL_QUEUE,
   eolQueue: () => ROUTES.EOL_QUEUE,
   eolDetails: (id?: string) => ROUTES.EOL_DETAILS.replace(':buildId', safeId(id)),
   eolStationSetup: () => ROUTES.EOL_SETUP,

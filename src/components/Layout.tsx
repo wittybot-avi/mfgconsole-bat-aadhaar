@@ -9,7 +9,7 @@ import { APP_VERSION, CURRENT_PATCH } from '../../app/patchInfo';
 import { ScreenId, SCREEN_GROUPS } from '../rbac/screenIds';
 import { canView, getMyPermissions } from '../rbac/can';
 import { APP_ROUTES, getScreenIdForPath, isRouteRegistered } from '../../app/routeRegistry';
-import { ROUTES } from '../../app/routes';
+import { ROUTES, routes } from '../../app/routes';
 import { DIAGNOSTIC_MODE } from '../app/diagnostics';
 import { traceSearchService } from '../services/traceSearchService';
 import { scenarioStore, DemoScenario } from '../demo/scenarioStore';
@@ -119,7 +119,15 @@ export const Layout = () => {
             const config = APP_ROUTES[id];
             if (!config) return null;
             if (id.includes('DETAIL') || id.includes('EDIT') || id.includes('_RUN') || id.includes('_TAB')) return null;
-            const displayPath = config.path.includes(':') ? config.path.split('/:')[0] : config.path;
+            
+            // Special cases for builders
+            let path = config.path;
+            if (id === ScreenId.DASHBOARD) path = routes.dashboard();
+            if (id === ScreenId.TELEMETRY) path = routes.telemetry();
+            if (id === ScreenId.ANALYTICS) path = routes.analytics();
+            if (id === ScreenId.EOL_QA_QUEUE) path = routes.eolHome();
+            
+            const displayPath = path.includes(':') ? path.split('/:')[0] : path;
             return (
               <SidebarItem 
                 key={id}

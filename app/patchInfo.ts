@@ -1,5 +1,5 @@
 /**
- * PATCH REGISTRY SYSTEM - SINGLE SOURCE OF TRUTH (PP-056C)
+ * PATCH REGISTRY SYSTEM - SINGLE SOURCE OF TRUTH (PP-056D)
  */
 
 export interface PatchMetadata {
@@ -13,18 +13,25 @@ export interface PatchMetadata {
 export const APP_VERSION = '1.8.9n';
 
 export const CURRENT_PATCH: PatchMetadata = {
-  id: "PP-056C",
-  name: "CANONICAL_NAVIGATION_BUILDERS",
+  id: "PP-056D",
+  name: "BATCH_TO_MODULE_WORKFLOW",
   date: "2024-05-24",
-  description: "Standardized all application navigation to use canonical route builders and eliminated hardcoded path strings to resolve remaining Unknown Coordinates errors.",
+  description: "Enabled end-to-end handoff from Manufacturing Batches to Module Assembly with automated module generation.",
   type: "hotfix"
 };
 
-export const PATCH_LEVEL = '56C';
+export const PATCH_LEVEL = '56D';
 export const LAST_PATCH_ID = CURRENT_PATCH.name;
 
 export const PATCH_HISTORY: PatchMetadata[] = [
   CURRENT_PATCH,
+  {
+    id: "PP-056C",
+    name: "CANONICAL_NAVIGATION_BUILDERS",
+    date: "2024-05-24",
+    description: "Replaced hardcoded path strings and manual replacements with centralized canonical route builders.",
+    type: "hotfix"
+  },
   {
     id: "PP-056B",
     name: "DIAGNOSTIC_CONSOLIDATION_AND_HUD_STABILIZATION",

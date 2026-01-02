@@ -19,6 +19,8 @@ export interface RouteConfig {
 export const APP_ROUTES: Record<string, RouteConfig> = {
   [ScreenId.DASHBOARD]: { icon: LayoutDashboard, label: 'Dashboard', path: ROUTES.DASHBOARD, screenId: ScreenId.DASHBOARD, componentName: 'Dashboard.tsx' },
   [ScreenId.DASHBOARD_EXEC_SUMMARY]: { icon: LayoutDashboard, label: 'Dashboard Summary', path: ROUTES.DASHBOARD, screenId: ScreenId.DASHBOARD_EXEC_SUMMARY, componentName: 'Dashboard.tsx' },
+  [ScreenId.TELEMETRY]: { icon: Activity, label: 'Telemetry', path: ROUTES.TELEMETRY, screenId: ScreenId.TELEMETRY, componentName: 'Telemetry.tsx' },
+  [ScreenId.ANALYTICS]: { icon: BarChart3, label: 'Analytics', path: ROUTES.ANALYTICS, screenId: ScreenId.ANALYTICS, componentName: 'Analytics.tsx' },
   
   // Design
   [ScreenId.SKU_LIST]: { icon: Layers, label: 'SKU Design', path: ROUTES.SKU_DESIGN, screenId: ScreenId.SKU_LIST, componentName: 'SkuList.tsx' },
@@ -65,6 +67,9 @@ export const APP_ROUTES: Record<string, RouteConfig> = {
   [ScreenId.RUNBOOK_DETAIL]: { icon: Map, label: 'Runbook Detail', path: ROUTES.RUNBOOK_DETAIL, screenId: ScreenId.RUNBOOK_DETAIL, componentName: 'RunbookDetail.tsx' },
 };
 
+/**
+ * Hardened resolution to prevent boot-time crashes and handle parameter patterns.
+ */
 export function getScreenIdForPath(pathname: string | null | undefined): ScreenId | undefined {
   if (!pathname) return undefined;
   try {
@@ -73,6 +78,7 @@ export function getScreenIdForPath(pathname: string | null | undefined): ScreenI
     );
     return match?.screenId;
   } catch (e) {
+    console.error("[RouteRegistry] Resolution failure:", e);
     return undefined;
   }
 }
