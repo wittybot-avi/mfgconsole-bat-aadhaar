@@ -43,6 +43,8 @@ export const RBAC_POLICY: PolicyMap = {
     [ScreenId.BATCHES_LIST]: ['V', 'C', 'E'],
     [ScreenId.BATCHES_CREATE]: ['C'],
     [ScreenId.BATCHES_DETAIL]: ['V', 'E'],
+    /* Added SKU_DETAIL for Manufacturing view */
+    [ScreenId.SKU_DETAIL]: ['V'],
     [ScreenId.MODULE_ASSEMBLY_LIST]: ['V', 'C', 'E'],
     [ScreenId.MODULE_ASSEMBLY_DETAIL]: ['V', 'E', 'X'],
     [ScreenId.PACK_ASSEMBLY_LIST]: ['V', 'C', 'E'],
@@ -87,6 +89,8 @@ export const RBAC_POLICY: PolicyMap = {
     [ScreenId.SETTINGS_API_KEYS]: ['V', 'E', 'M'],
     [ScreenId.RBAC_VIEW]: ['V', 'M'],
     [ScreenId.COMPLIANCE]: ['V'],
+    /* Added SKU_DETAIL for Engineering view */
+    [ScreenId.SKU_DETAIL]: ['V'],
   },
 
   // C5: BMS & Firmware
@@ -107,6 +111,8 @@ export const RBAC_POLICY: PolicyMap = {
     [ScreenId.DASHBOARD]: ['V'],
     [ScreenId.DASHBOARD_LOGISTICS]: ['V'],
     [ScreenId.INVENTORY]: ['V', 'E', 'X'],
+    /* Added INVENTORY_DETAIL for Logistics view */
+    [ScreenId.INVENTORY_DETAIL]: ['V'],
     [ScreenId.CELL_LOTS_LIST]: ['V', 'C', 'E'],
     [ScreenId.CELL_LOTS_CREATE]: ['C'],
     [ScreenId.CELL_LOTS_DETAIL]: ['V', 'E'],

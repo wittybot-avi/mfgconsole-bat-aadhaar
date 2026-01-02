@@ -1,21 +1,17 @@
 /**
- * Global Route Constants
+ * Global Route Constants (PP-056C)
  */
 export const ROUTES = {
   DASHBOARD: '/',
   LOGIN: '/login',
   
-  // SOP Guide
-  RUNBOOKS: '/runbooks',
-  RUNBOOK_DETAIL: '/runbooks/:runbookId',
-  
   // Observe
   TELEMETRY: '/telemetry',
   ANALYTICS: '/analytics',
-  
+
   // Design
-  SKU_DESIGN: '/sku',
-  SKU_DETAIL: '/sku/:id',
+  SKU_DESIGN: '/design/sku',
+  SKU_DETAIL: '/design/sku/:id',
   
   // Trace
   CELL_SERIALIZATION: '/trace/cells',
@@ -32,49 +28,49 @@ export const ROUTES = {
   MODULE_ASSEMBLY_DETAIL: '/operate/modules/:id',
   PACK_ASSEMBLY: '/operate/packs',
   PACK_ASSEMBLY_DETAIL: '/operate/packs/:id',
-  BATTERY_IDENTITY: '/operate/batteries',
-  BATTERY_IDENTITY_DETAIL: '/operate/batteries/:id',
-  
-  PROVISIONING_QUEUE: '/manufacturing/provisioning/queue',
-  PROVISIONING_SETUP: '/manufacturing/provisioning/setup',
-  PROVISIONING_WORKSTATION: '/assure/provisioning/:batteryId',
-  
-  INVENTORY: '/inventory',
-  DISPATCH: '/dispatch',
-  DISPATCH_ORDERS: '/dispatch',
-  DISPATCH_DETAIL: '/dispatch/:orderId',
+  BATTERY_IDENTITY: '/operate/identity',
+  BATTERY_IDENTITY_DETAIL: '/operate/identity/:id',
+  INVENTORY: '/operate/inventory',
+  INVENTORY_DETAIL: '/operate/inventory/:id',
+  DISPATCH: '/operate/dispatch',
+  DISPATCH_ORDERS: '/operate/dispatch',
+  DISPATCH_DETAIL: '/operate/dispatch/:id',
 
-  // Assure (EOL Canonical Namespace)
+  // Provisioning
+  PROVISIONING_QUEUE: '/operate/provisioning/queue',
+  PROVISIONING_SETUP: '/operate/provisioning/setup',
+  PROVISIONING_WORKSTATION: '/operate/provisioning/workstation',
+
+  // Assure
   EOL_QUEUE: '/assure/eol',
-  EOL_SETUP: '/assure/eol/station-setup',
-  EOL_REVIEW: '/assure/eol/review',
   EOL_DETAILS: '/assure/eol/details/:buildId',
+  EOL_SETUP: '/assure/eol/stations',
+  EOL_REVIEW: '/assure/eol/review',
   EOL_RUN: '/assure/eol/run/:buildId',
   EOL_AUDIT: '/assure/eol/audit/:buildId',
 
-  // Resolve
+  // Govern & Resolve
+  COMPLIANCE: '/govern/compliance',
+  CUSTODY: '/govern/chain-of-custody',
+  CUSTODY_DETAIL: '/govern/chain-of-custody/:dispatchId',
   WARRANTY_RETURNS: '/resolve/warranty-returns',
   WARRANTY_CLAIM_DETAIL: '/resolve/warranty-returns/claims/:claimId',
   WARRANTY_INTAKE: '/warranty/intake',
 
-  // Govern
-  COMPLIANCE: '/govern/compliance',
-  CUSTODY: '/govern/chain-of-custody',
-  CUSTODY_DETAIL: '/govern/chain-of-custody/:dispatchId',
-
   // Admin
   SETTINGS: '/admin/settings',
   ACCESS_AUDIT: '/admin/access-audit',
+  SYSTEM_HEALTH: '/diagnostics/system-health',
 
-  // Diagnostics
-  SYSTEM_HEALTH: '/diagnostics/system-health'
+  // Guided
+  RUNBOOKS: '/runbooks',
+  RUNBOOK_DETAIL: '/runbooks/:runbookId',
 };
 
 /**
- * CANONICAL ROUTE BUILDERS (PP-056C/F)
- * Use these for all UI navigation to ensure param safety and encoding.
+ * CANONICAL ROUTE BUILDERS
  */
-const safeId = (id?: string) => id ? encodeURIComponent(id) : '';
+const safeId = (id?: string) => id ? encodeURIComponent(id) : 'UNKNOWN';
 
 export const routes = {
   dashboard: () => ROUTES.DASHBOARD,
@@ -82,35 +78,38 @@ export const routes = {
   
   // Design
   skuList: () => ROUTES.SKU_DESIGN,
-  skuDetails: (id?: string) => id ? ROUTES.SKU_DETAIL.replace(':id', safeId(id)) : ROUTES.SKU_DESIGN,
+  skuDetails: (id?: string) => ROUTES.SKU_DETAIL.replace(':id', safeId(id)),
 
   // Operate
   batchesList: () => ROUTES.BATCHES,
-  batchDetails: (id?: string) => id ? ROUTES.BATCH_DETAIL.replace(':id', safeId(id)) : ROUTES.BATCHES,
+  batchDetails: (id?: string) => ROUTES.BATCH_DETAIL.replace(':id', safeId(id)),
   
   moduleAssemblyList: () => ROUTES.MODULE_ASSEMBLY,
-  moduleDetails: (id?: string) => id ? ROUTES.MODULE_ASSEMBLY_DETAIL.replace(':id', safeId(id)) : ROUTES.MODULE_ASSEMBLY,
+  moduleDetails: (id?: string) => ROUTES.MODULE_ASSEMBLY_DETAIL.replace(':id', safeId(id)),
   
   packAssemblyList: () => ROUTES.PACK_ASSEMBLY,
-  packDetails: (id?: string) => id ? ROUTES.PACK_ASSEMBLY_DETAIL.replace(':id', safeId(id)) : ROUTES.PACK_ASSEMBLY,
-  packBuildDetails: (id?: string) => id ? ROUTES.PACK_ASSEMBLY_DETAIL.replace(':id', safeId(id)) : ROUTES.PACK_ASSEMBLY,
+  packDetails: (id?: string) => ROUTES.PACK_ASSEMBLY_DETAIL.replace(':id', safeId(id)),
+  /* Added packBuildDetails alias to resolve Property 'packBuildDetails' does not exist error */
+  packBuildDetails: (id?: string) => ROUTES.PACK_ASSEMBLY_DETAIL.replace(':id', safeId(id)),
   
   batteryIdentityList: () => ROUTES.BATTERY_IDENTITY,
-  batteryIdentityDetails: (id?: string) => id ? ROUTES.BATTERY_IDENTITY_DETAIL.replace(':id', safeId(id)) : ROUTES.BATTERY_IDENTITY,
+  batteryIdentityDetails: (id?: string) => ROUTES.BATTERY_IDENTITY_DETAIL.replace(':id', safeId(id)),
 
   inventoryList: () => ROUTES.INVENTORY,
-  inventoryDetails: (id?: string) => id ? ROUTES.BATTERY_IDENTITY_DETAIL.replace(':id', safeId(id)) : ROUTES.INVENTORY,
+  inventoryItem: (id?: string) => ROUTES.INVENTORY_DETAIL.replace(':id', safeId(id)),
+  /* Added inventoryDetails alias to resolve Property 'inventoryDetails' does not exist error */
+  inventoryDetails: (id?: string) => ROUTES.INVENTORY_DETAIL.replace(':id', safeId(id)),
 
-  dispatchList: () => ROUTES.DISPATCH_ORDERS,
-  dispatchDetails: (id?: string) => id ? ROUTES.DISPATCH_DETAIL.replace(':orderId', safeId(id)) : ROUTES.DISPATCH_ORDERS,
+  dispatchList: () => ROUTES.DISPATCH,
+  dispatchDetails: (id?: string) => ROUTES.DISPATCH_DETAIL.replace(':id', safeId(id)),
 
-  // Assure (EOL)
+  // Assure
   eolQueue: () => ROUTES.EOL_QUEUE,
-  eolDetails: (id?: string) => id ? ROUTES.EOL_DETAILS.replace(':buildId', safeId(id)) : ROUTES.EOL_QUEUE,
-  eolRunTest: (id?: string) => id ? ROUTES.EOL_RUN.replace(':buildId', safeId(id)) : ROUTES.EOL_QUEUE,
-  eolAudit: (id?: string) => id ? ROUTES.EOL_AUDIT.replace(':buildId', safeId(id)) : ROUTES.EOL_QUEUE,
+  eolDetails: (id?: string) => ROUTES.EOL_DETAILS.replace(':buildId', safeId(id)),
+  eolStationSetup: () => ROUTES.EOL_SETUP,
+  eolReview: () => ROUTES.EOL_REVIEW,
 
   // Trace
-  cellLotDetails: (id?: string) => id ? ROUTES.CELL_LOT_DETAIL.replace(':lotId', safeId(id)) : ROUTES.CELL_SERIALIZATION_HAPPY,
+  cellLotDetails: (id?: string) => ROUTES.CELL_LOT_DETAIL.replace(':lotId', safeId(id)),
   lineageAudit: (id?: string) => id ? ROUTES.LINEAGE_AUDIT_DETAIL.replace(':id', safeId(id)) : ROUTES.LINEAGE_AUDIT
 };
