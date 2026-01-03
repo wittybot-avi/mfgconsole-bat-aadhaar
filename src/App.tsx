@@ -66,8 +66,8 @@ export default function App() {
             <Route index element={<RouteGuard screen={ScreenId.DASHBOARD}><Dashboard /></RouteGuard>} />
             
             {/* Observe */}
-            <Route path="telemetry" element={<RouteGuard screen={ScreenId.TELEMETRY}><Telemetry /></RouteGuard>} />
-            <Route path="analytics" element={<RouteGuard screen={ScreenId.ANALYTICS}><Analytics /></RouteGuard>} />
+            <Route path="observe/telemetry" element={<RouteGuard screen={ScreenId.TELEMETRY}><Telemetry /></RouteGuard>} />
+            <Route path="observe/analytics" element={<RouteGuard screen={ScreenId.ANALYTICS}><Analytics /></RouteGuard>} />
             
             {/* Design */}
             <Route path="design/sku">
@@ -143,6 +143,8 @@ export default function App() {
             <Route path="diagnostics/system-health" element={<DiagnosticsPage />} />
 
             {/* Redirects */}
+            <Route path="telemetry" element={<Navigate to="/observe/telemetry" replace />} />
+            <Route path="analytics" element={<Navigate to="/observe/analytics" replace />} />
             <Route path="sku" element={<Navigate to="/design/sku" replace />} />
             <Route path="operate/batteries" element={<Navigate to="/operate/identity" replace />} />
             <Route path="inventory" element={<Navigate to="/operate/inventory" replace />} />

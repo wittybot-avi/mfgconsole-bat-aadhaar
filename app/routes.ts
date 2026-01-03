@@ -1,13 +1,13 @@
 /**
- * Global Route Constants (PP-056D)
+ * Global Route Constants (PP-056E)
  */
 export const ROUTES = {
   DASHBOARD: '/',
   LOGIN: '/login',
   
   // Observe
-  TELEMETRY: '/telemetry',
-  ANALYTICS: '/analytics',
+  TELEMETRY: '/observe/telemetry',
+  ANALYTICS: '/observe/analytics',
 
   // Design
   SKU_DESIGN: '/design/sku',
@@ -113,6 +113,8 @@ export const routes = {
   eolReview: () => ROUTES.EOL_REVIEW,
 
   // Trace
+  // Fix: Added missing cellSerialization canonical route builder to resolve Property 'cellSerialization' does not exist error.
+  cellSerialization: () => ROUTES.CELL_SERIALIZATION,
   cellLotDetails: (id?: string) => ROUTES.CELL_LOT_DETAIL.replace(':lotId', safeId(id)),
   lineageAudit: (id?: string) => id ? ROUTES.LINEAGE_AUDIT_DETAIL.replace(':id', safeId(id)) : ROUTES.LINEAGE_AUDIT
 };

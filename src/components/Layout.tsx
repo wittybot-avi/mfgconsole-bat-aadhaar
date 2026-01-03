@@ -71,18 +71,44 @@ export const Layout = () => {
     navigate(ROUTES.LOGIN);
   };
 
+  /**
+   * DETERMINISTIC SEARCH RESOLVER (PP-056E)
+   */
   const handleGlobalSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim() || searching) return;
+    const query = searchQuery.trim().toUpperCase();
+    if (!query || searching) return;
+    
     setSearching(true);
+    
     try {
-        const resolution = await traceSearchService.resolveIdentifier(searchQuery);
-        if (resolution) {
-            navigate(resolution.route);
-            setSearchQuery('');
-        } else {
-            addNotification({ title: 'No Results', message: 'Identifier not found in registry.', type: 'info' });
+        // Deterministic prefix matching
+        if (query.startsWith('LOT-') || query.includes('LFP') || query.includes('NMC')) {
+            navigate(`${routes.cellSerialization() || '/trace/cells'}?q=${query}`);
         }
+        else if (query.startsWith('PB-') || query.startsWith('PACK-')) {
+            // Prefer detail if exact match (mocking detail availability)
+            if (query.length > 5) navigate(routes.packBuildDetails(query));
+            else navigate(`${routes.packAssemblyList()}?q=${query}`);
+        }
+        else if (query.startsWith('SN-') || query.startsWith('BAT-')) {
+            if (query.length > 4) navigate(routes.batteryIdentityDetails(query));
+            else navigate(`${routes.batteryIdentityList()}?q=${query}`);
+        }
+        else if (query.startsWith('INV-') || query.startsWith('BATT-')) {
+            if (query.length > 5) navigate(routes.inventoryItem(query));
+            else navigate(`${routes.inventoryList()}?q=${query}`);
+        }
+        else {
+            // General resolution
+            const resolution = await traceSearchService.resolveIdentifier(searchQuery);
+            if (resolution) {
+                navigate(resolution.route);
+            } else {
+                addNotification({ title: 'No Results', message: 'Identifier not found. Use prefixes like LOT- or SN-.', type: 'info' });
+            }
+        }
+        setSearchQuery('');
     } catch (err) {
         console.error("Search failed:", err);
     } finally {
@@ -211,33 +237,38 @@ export const Layout = () => {
 
         <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarOpen ? 'pl-64' : 'pl-0'}`}>
           <header className="h-16 border-b bg-white dark:bg-slate-900 dark:border-slate-800 sticky top-0 z-40 px-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={toggleSidebar}><Menu size={20} /></Button>
-              <form onSubmit={handleGlobalSearch} className="relative hidden md:block w-72 lg:w-96">
-                <Search className={`absolute left-2.5 top-2.5 h-4 w-4 ${searching ? 'text-primary animate-pulse' : 'text-muted-foreground'}`} />
-                <Input 
-                  type="search" 
-                  placeholder="Global Search (Asset IDs, Serials)..." 
-                  className="pl-9 bg-slate-100 dark:bg-slate-800 border-none h-10" 
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                />
-              </form>
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2 hidden lg:block"></div>
-              <div className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full border bg-slate-50 dark:bg-slate-800/50`}>
-                  <Database size={14} className="text-primary" />
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Demo:</span>
-                  <select 
-                      className="bg-transparent text-xs font-bold focus:outline-none cursor-pointer text-slate-700 dark:text-slate-300"
-                      value={currentScenario}
-                      onChange={(e) => handleScenarioChange(e.target.value as DemoScenario)}
-                  >
-                      <option value="HAPPY_PATH">Happy Path</option>
-                      <option value="MISMATCH">Mismatch</option>
-                      <option value="TAMPER">Tamper</option>
-                      <option value="EMPTY">Blank Slate</option>
-                  </select>
+            <div className="flex flex-col flex-1 gap-1">
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" onClick={toggleSidebar}><Menu size={20} /></Button>
+                <form onSubmit={handleGlobalSearch} className="relative hidden md:block w-72 lg:w-96">
+                  <Search className={`absolute left-2.5 top-2.5 h-4 w-4 ${searching ? 'text-primary animate-pulse' : 'text-muted-foreground'}`} />
+                  <Input 
+                    type="search" 
+                    placeholder="Global Search (Asset IDs, Serials)..." 
+                    className="pl-9 bg-slate-100 dark:bg-slate-800 border-none h-10" 
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                  />
+                </form>
+                <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2 hidden lg:block"></div>
+                <div className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full border bg-slate-50 dark:bg-slate-800/50`}>
+                    <Database size={14} className="text-primary" />
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Demo:</span>
+                    <select 
+                        className="bg-transparent text-xs font-bold focus:outline-none cursor-pointer text-slate-700 dark:text-slate-300"
+                        value={currentScenario}
+                        onChange={(e) => handleScenarioChange(e.target.value as DemoScenario)}
+                    >
+                        <option value="HAPPY_PATH">Happy Path</option>
+                        <option value="MISMATCH">Mismatch</option>
+                        <option value="TAMPER">Tamper</option>
+                        <option value="EMPTY">Blank Slate</option>
+                    </select>
+                </div>
               </div>
+              <p className="hidden md:block text-[9px] text-slate-400 font-bold uppercase tracking-widest pl-14">
+                Try: <span className="text-primary/70">LOT-</span>, <span className="text-primary/70">PB-</span>, <span className="text-primary/70">SN-</span>, <span className="text-primary/70">INV-</span>
+              </p>
             </div>
 
             <div className="flex items-center gap-3">

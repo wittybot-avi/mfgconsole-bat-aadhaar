@@ -67,9 +67,6 @@ export const APP_ROUTES: Record<string, RouteConfig> = {
   [ScreenId.RUNBOOK_DETAIL]: { icon: Map, label: 'Runbook Detail', path: ROUTES.RUNBOOK_DETAIL, screenId: ScreenId.RUNBOOK_DETAIL, componentName: 'RunbookDetail.tsx' },
 };
 
-/**
- * Hardened resolution to prevent boot-time crashes and handle parameter patterns.
- */
 export function getScreenIdForPath(pathname: string | null | undefined): ScreenId | undefined {
   if (!pathname) return undefined;
   try {
@@ -78,7 +75,6 @@ export function getScreenIdForPath(pathname: string | null | undefined): ScreenI
     );
     return match?.screenId;
   } catch (e) {
-    console.error("[RouteRegistry] Resolution failure:", e);
     return undefined;
   }
 }
