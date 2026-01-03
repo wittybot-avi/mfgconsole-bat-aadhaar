@@ -57,6 +57,13 @@ export const APP_ROUTES: Record<string, RouteConfig> = {
   [ScreenId.EOL_SETUP]: { icon: Settings, label: 'Station Setup', path: ROUTES.EOL_SETUP, screenId: ScreenId.EOL_SETUP, componentName: 'EolStationSetup.tsx' },
   [ScreenId.EOL_REVIEW]: { icon: ClipboardList, label: 'EOL Review', path: ROUTES.EOL_REVIEW, screenId: ScreenId.EOL_REVIEW, componentName: 'EolReview.tsx' },
 
+  // Govern
+  [ScreenId.COMPLIANCE]: { icon: ShieldCheck, label: 'Compliance', path: ROUTES.COMPLIANCE, screenId: ScreenId.COMPLIANCE, componentName: 'Compliance.tsx' },
+  [ScreenId.CUSTODY]: { icon: History, label: 'Chain of Custody', path: ROUTES.CUSTODY, screenId: ScreenId.CUSTODY, componentName: 'Custody.tsx' },
+
+  // Resolve
+  [ScreenId.WARRANTY]: { icon: FileText, label: 'Warranty & Returns', path: ROUTES.WARRANTY_RETURNS, screenId: ScreenId.WARRANTY, componentName: 'Warranty.tsx' },
+
   // Admin
   [ScreenId.SETTINGS]: { icon: Settings, label: 'Settings', path: ROUTES.SETTINGS, screenId: ScreenId.SETTINGS, componentName: 'Settings.tsx' },
   [ScreenId.RBAC_VIEW]: { icon: Shield, label: 'Access Audit', path: ROUTES.ACCESS_AUDIT, screenId: ScreenId.RBAC_VIEW, componentName: 'RbacAdmin.tsx' },
@@ -67,12 +74,16 @@ export const APP_ROUTES: Record<string, RouteConfig> = {
   [ScreenId.RUNBOOK_DETAIL]: { icon: Map, label: 'Runbook Detail', path: ROUTES.RUNBOOK_DETAIL, screenId: ScreenId.RUNBOOK_DETAIL, componentName: 'RunbookDetail.tsx' },
 };
 
+/**
+ * Hardened resolution to prevent boot-time crashes and handle parameter patterns.
+ */
 export function getScreenIdForPath(pathname: string | null | undefined): ScreenId | undefined {
   if (!pathname) return undefined;
   try {
     const match = (Object.values(APP_ROUTES) as RouteConfig[]).find(config => 
       !!matchPath({ path: config.path || '', end: true }, pathname)
     );
+    // Return explicit screenId if matched, otherwise undefined to trigger safe-not-found
     return match?.screenId;
   } catch (e) {
     return undefined;

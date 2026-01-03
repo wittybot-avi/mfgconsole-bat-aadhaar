@@ -135,7 +135,12 @@ export const Layout = () => {
   const renderNavGroup = (groupName: string, screenIds: ScreenId[]) => {
     if (!currentCluster) return null;
     const visibleItems = screenIds.filter(id => id && canView(currentCluster.id, id));
-    if (visibleItems.length === 0) return null;
+    
+    // PP-057: Empty Section Guard
+    if (visibleItems.length === 0) {
+      if (isDiagOpen) console.debug(`[Diag] NavGroupHidden: ${groupName} (0 visible items)`);
+      return null;
+    }
 
     return (
       <div className="mb-6">
@@ -146,12 +151,16 @@ export const Layout = () => {
             if (!config) return null;
             if (id.includes('DETAIL') || id.includes('EDIT') || id.includes('_RUN') || id.includes('_TAB')) return null;
             
-            // Special cases for builders
+            // PP-057: Standardized Canonical Builders
             let path = config.path;
             if (id === ScreenId.DASHBOARD) path = routes.dashboard();
             if (id === ScreenId.TELEMETRY) path = routes.telemetry();
             if (id === ScreenId.ANALYTICS) path = routes.analytics();
             if (id === ScreenId.EOL_QA_QUEUE) path = routes.eolHome();
+            if (id === ScreenId.COMPLIANCE) path = routes.compliance();
+            if (id === ScreenId.CUSTODY) path = routes.custody();
+            if (id === ScreenId.WARRANTY) path = routes.warrantyReturns();
+            if (id === ScreenId.RBAC_VIEW) path = routes.accessAudit();
             
             const displayPath = path.includes(':') ? path.split('/:')[0] : path;
             return (
