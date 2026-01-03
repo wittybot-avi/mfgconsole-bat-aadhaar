@@ -1,3 +1,4 @@
+
 export enum ScreenId {
   // Observe
   DASHBOARD = 'DASHBOARD',
@@ -61,6 +62,8 @@ export enum ScreenId {
   // Govern
   COMPLIANCE = 'COMPLIANCE',
   CUSTODY = 'CUSTODY',
+  /* Added CUSTODY_DETAIL to ScreenId enum to resolve orphan detection in navigationIntegrity.ts */
+  CUSTODY_DETAIL = 'CUSTODY_DETAIL',
   CUSTODY_OVERVIEW = 'CUSTODY_OVERVIEW',
   CUSTODY_LIST = 'CUSTODY_LIST',
   CUSTODY_EXCEPTIONS = 'CUSTODY_EXCEPTIONS',
@@ -82,6 +85,8 @@ export enum ScreenId {
   WARRANTY = 'WARRANTY',
   WARRANTY_OVERVIEW = 'WARRANTY_OVERVIEW',
   WARRANTY_CLAIMS_LIST = 'WARRANTY_CLAIMS_LIST',
+  /* Added WARRANTY_CLAIM_DETAIL to ScreenId enum to resolve orphan detection in navigationIntegrity.ts */
+  WARRANTY_CLAIM_DETAIL = 'WARRANTY_CLAIM_DETAIL',
   WARRANTY_EXTERNAL_INTAKE = 'WARRANTY_EXTERNAL_INTAKE',
   WARRANTY_CREATE_CLAIM_INTERNAL = 'WARRANTY_CREATE_CLAIM_INTERNAL',
   WARRANTY_UPDATE_CLAIM_INTERNAL = 'WARRANTY_UPDATE_CLAIM_INTERNAL',
@@ -104,7 +109,10 @@ export enum ScreenId {
   RUNBOOK_DETAIL = 'RUNBOOK_DETAIL',
 
   // Diagnostics
-  SYSTEM_HEALTH = 'SYSTEM_HEALTH'
+  SYSTEM_HEALTH = 'SYSTEM_HEALTH',
+
+  /* Added LOGIN to ScreenId enum to resolve missing property error in navigationIntegrity.ts */
+  LOGIN = 'LOGIN'
 }
 
 /**

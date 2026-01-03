@@ -9,7 +9,7 @@ import { buildMeta } from '../app/buildMeta';
 import { ScreenId } from '../rbac/screenIds';
 import { canView, getMyPermissions } from '../rbac/can';
 import { APP_ROUTES, getScreenIdForPath, isRouteRegistered } from '../../app/routeRegistry';
-import { ROUTES, routes } from '../../app/routes';
+import { ROUTES } from '../app/routes';
 import { DIAGNOSTIC_MODE } from '../app/diagnostics';
 import { traceSearchService } from '../services/traceSearchService';
 import { scenarioStore, DemoScenario } from '../demo/scenarioStore';
@@ -17,7 +17,7 @@ import { routerSafe } from '../utils/routerSafe';
 import { HudPill } from './HudPill';
 import { UnifiedDiagnosticPanel } from './UnifiedDiagnosticPanel';
 import { navIntegrity } from '../app/navigationIntegrity';
-import { NAV_SECTIONS, NavSection, NavItem } from '../app/navigation';
+import { NAV_SECTIONS, NavSection, NavItem, safeNavigate } from '../app/navigation';
 
 interface SidebarItemProps {
   icon?: any;
@@ -83,7 +83,7 @@ export const Layout = () => {
   }, [location.search]);
 
   /**
-   * PP-061: Compute Nav Metrics for HUD
+   * PP-061B: Compute Nav Metrics for HUD
    */
   const navMetrics = useMemo(() => {
     if (!currentCluster) return { total: 0, enabled: 0, disabled: 0 };
@@ -95,8 +95,8 @@ export const Layout = () => {
       items.forEach(item => {
         total++;
         const isAllowed = canView(currentCluster.id, item.screenId);
-        const isRegistered = isRouteRegistered(item.href());
-        if (isAllowed && isRegistered) enabled++;
+        // Canonical navigation is enabled if RBAC allows, regardless of runtime route status
+        if (isAllowed) enabled++;
       });
     });
 
@@ -117,7 +117,7 @@ export const Layout = () => {
     try {
         const resolution = await traceSearchService.resolveIdentifier(searchQuery);
         if (resolution) {
-            navigate(resolution.route);
+            safeNavigate(navigate, resolution.route);
         } else {
             addNotification({ title: 'No Results', message: 'Identifier not found. Use prefixes like LOT- or SN-.', type: 'info' });
         }
@@ -146,14 +146,14 @@ export const Layout = () => {
   };
 
   /**
-   * PP-061: Nav Visibility Guard Implementation
+   * PP-061B: Nav Visibility Guard Implementation
+   * Sidebar rendering is now decoupled from runtime route registration.
    */
   const renderNavSection = (section: NavSection) => {
     if (!currentCluster) return null;
 
     const renderItem = (item: NavItem) => {
       const path = item.href();
-      const isRegistered = isRouteRegistered(path);
       const isAllowed = canView(currentCluster.id, item.screenId);
       const routeCfg = APP_ROUTES[item.screenId];
 
@@ -161,11 +161,7 @@ export const Layout = () => {
       let diagInfo: string | undefined = undefined;
       let disabled = false;
 
-      if (!isRegistered) {
-        badge = 'UNREGISTERED';
-        diagInfo = `Route ${path} not registered in ledger.`;
-        disabled = true;
-      } else if (!isAllowed) {
+      if (!isAllowed) {
         badge = 'RESTRICTED';
         diagInfo = `RBAC Cluster ${currentCluster.id} denied access to ${item.screenId}.`;
         disabled = true;
@@ -182,7 +178,7 @@ export const Layout = () => {
           icon={routeCfg?.icon}
           label={item.label}
           path={path}
-          active={location.pathname === path}
+          active={location.pathname === path || (location.pathname.startsWith(path) && path !== '/')}
           disabled={disabled}
           badge={badge}
           diagnosticInfo={diagInfo}

@@ -1,4 +1,3 @@
-
 /**
  * Global Route Constants (PP-060A)
  */
@@ -136,6 +135,6 @@ export const routes = {
   accessAudit: () => ROUTES.ACCESS_AUDIT,
   systemHealth: () => ROUTES.SYSTEM_HEALTH,
 
-  /* Added runbooks canonical builder to resolve type error in navigation.ts */
+  // Guided
   runbooks: () => ROUTES.RUNBOOKS
 };

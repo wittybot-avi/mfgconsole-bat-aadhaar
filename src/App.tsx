@@ -1,10 +1,11 @@
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { AuthGate } from './components/AuthGate';
 import { RouteGuard } from './components/RouteGuard';
 import { ScreenId } from './rbac/screenIds';
 import { Layout } from './components/Layout';
 import { ROUTES } from '../app/routes';
+import { NAV_ALIASES, resolvePath } from './app/navAliases';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages
@@ -51,6 +52,16 @@ import EolReview from './pages/EolReview';
 import NotFound from './pages/NotFound';
 import RunbookHub from './pages/RunbookHub';
 import RunbookDetail from './pages/RunbookDetail';
+
+/**
+ * SmartRedirect (PP-061B)
+ * Resolves legacy or short paths to their canonical equivalents.
+ */
+function SmartRedirect() {
+  const location = useLocation();
+  const target = resolvePath(location.pathname);
+  return <Navigate to={target + location.search} replace />;
+}
 
 /**
  * Main Application Routing Node
@@ -144,18 +155,14 @@ export default function App() {
             {/* System Health */}
             <Route path="diagnostics/system-health" element={<DiagnosticsPage />} />
 
-            {/* Redirects */}
-            <Route path="telemetry" element={<Navigate to="/observe/telemetry" replace />} />
-            <Route path="analytics" element={<Navigate to="/observe/analytics" replace />} />
-            <Route path="sku" element={<Navigate to="/design/sku" replace />} />
-            <Route path="operate/batteries" element={<Navigate to="/operate/identity" replace />} />
-            <Route path="inventory" element={<Navigate to="/operate/inventory" replace />} />
-            <Route path="dispatch" element={<Navigate to="/operate/dispatch" replace />} />
-            <Route path="eol" element={<Navigate to="/assure/eol" replace />} />
-            
-            {/* PP-060A Redirects */}
-            <Route path="custody" element={<Navigate to="/govern/chain-of-custody" replace />} />
-            <Route path="custody/:id" element={<RedirectToCustody />} />
+            {/* Alias Redirects (PP-061B) */}
+            {Object.keys(NAV_ALIASES).map(alias => (
+              <Route key={alias} path={alias.substring(1)} element={<SmartRedirect />} />
+            ))}
+            <Route path="eol/*" element={<SmartRedirect />} />
+            <Route path="inventory/*" element={<SmartRedirect />} />
+            <Route path="batches/*" element={<SmartRedirect />} />
+            <Route path="sku/*" element={<SmartRedirect />} />
 
             <Route path="*" element={<NotFound />} />
           </Route>
@@ -163,12 +170,4 @@ export default function App() {
       </HashRouter>
     </ErrorBoundary>
   );
-}
-
-/**
- * Helper to handle parameterized legacy redirects
- */
-function RedirectToCustody() {
-  const { id } = useParams();
-  return <Navigate to={`/govern/chain-of-custody/${id}`} replace />;
 }

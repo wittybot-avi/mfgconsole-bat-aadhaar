@@ -3,7 +3,7 @@ import { isRouteRegistered, APP_ROUTES } from '../../app/routeRegistry';
 import { ScreenId } from '../rbac/screenIds';
 
 export interface IntegrityWarning {
-  type: 'UNREGISTERED_NAV' | 'MISSING_CORE_SCREEN' | 'MISMATCHED_SCREEN_ID';
+  type: 'UNREGISTERED_NAV' | 'MISSING_CORE_SCREEN' | 'MISMATCHED_SCREEN_ID' | 'ORPHAN_SCREEN';
   label: string;
   detail: string;
 }
@@ -20,6 +20,31 @@ const CORE_SCREENS = [
   ScreenId.CUSTODY,
   ScreenId.COMPLIANCE,
   ScreenId.RBAC_VIEW
+];
+
+/**
+ * Screens that are intentionally omitted from navigation (e.g. details, specific workstation runs)
+ */
+const EXCLUDED_ORPHANS = [
+  ScreenId.SKU_DETAIL,
+  ScreenId.CELL_LOTS_DETAIL,
+  ScreenId.BATCHES_DETAIL,
+  ScreenId.MODULE_ASSEMBLY_DETAIL,
+  ScreenId.PACK_ASSEMBLY_DETAIL,
+  ScreenId.BATTERIES_DETAIL,
+  ScreenId.INVENTORY_DETAIL,
+  ScreenId.DISPATCH_DETAIL,
+  ScreenId.EOL_DETAILS,
+  ScreenId.EOL_RUN_TEST,
+  ScreenId.EOL_AUDIT_DETAIL,
+  ScreenId.CUSTODY_DETAIL,
+  ScreenId.WARRANTY_CLAIM_DETAIL,
+  ScreenId.RUNBOOK_DETAIL,
+  ScreenId.PROVISIONING, // workstation is usually deep-linked
+  ScreenId.SYSTEM_HEALTH,
+  ScreenId.LOGIN,
+  ScreenId.DASHBOARD_EXEC_SUMMARY, // sub-component of dashboard
+  ScreenId.WARRANTY_EXTERNAL_INTAKE 
 ];
 
 class NavigationIntegrity {
@@ -40,11 +65,13 @@ class NavigationIntegrity {
     // 1. Check if nav items point to registered routes
     navItems.forEach(item => {
       const path = item.href();
+      if (path === '#') return; // Ignore SOON placeholders
+      
       if (!isRouteRegistered(path)) {
         newWarnings.push({
           type: 'UNREGISTERED_NAV',
           label: item.label,
-          detail: `Nav points to ${path} which is not in registry.`
+          detail: `Nav item points to ${path} which is not in registry.`
         });
       }
 
@@ -65,10 +92,27 @@ class NavigationIntegrity {
       if (!isPresent) {
         newWarnings.push({
           type: 'MISSING_CORE_SCREEN',
-          label: id,
+          label: id as string,
           detail: `Core screen ${id} is not present in nav config.`
         });
       }
+    });
+
+    // 4. Orphaned Screen Detection (PP-061A)
+    // Check if any ScreenId in routeRegistry is missing from NAV_SECTIONS
+    Object.keys(APP_ROUTES).forEach(id => {
+       const screenId = id as ScreenId;
+       // Skip technical base patterns and excluded detail screens
+       if (id.includes('-base') || EXCLUDED_ORPHANS.includes(screenId)) return;
+
+       const isPresent = navItems.some(item => item.screenId === screenId);
+       if (!isPresent) {
+           newWarnings.push({
+               type: 'ORPHAN_SCREEN',
+               label: id,
+               detail: `Registered screen ${id} is not mapped to any navigation group.`
+           });
+       }
     });
 
     this.warnings = newWarnings;

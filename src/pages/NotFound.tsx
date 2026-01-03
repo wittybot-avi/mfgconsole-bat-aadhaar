@@ -3,11 +3,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button, Card, CardContent } from '../components/ui/design-system';
 import { Home, Compass, Map, Loader2, Info, ArrowRight } from 'lucide-react';
 import { routerSafe } from '../utils/routerSafe';
+import { resolvePath } from '../app/navAliases';
+import { safeNavigate } from '../app/navigation';
 
 /**
- * Safe Navigation Fallback
- * Renders within the Layout shell to maintain UI stability.
- * Patch PP-056B: Smart recovery suggestions.
+ * Unknown Coordinates (PP-061B)
+ * Self-healing view that attempts to detour to canonical routes.
  */
 export default function NotFound() {
   const navigate = useNavigate();
@@ -15,27 +16,37 @@ export default function NotFound() {
   const [suggestion, setSuggestion] = useState<{ label: string, path: string } | null>(null);
 
   useEffect(() => {
-    // Detect legacy patterns for smart suggestions
-    const path = location.pathname.toLowerCase();
-    if (path.includes('batch')) setSuggestion({ label: 'Manufacturing Batches', path: '/operate/batches' });
-    else if (path.includes('inventory')) setSuggestion({ label: 'Inventory Console', path: '/inventory' });
-    else if (path.includes('dispatch')) setSuggestion({ label: 'Dispatch Queue', path: '/dispatch' });
-    else if (path.includes('battery')) setSuggestion({ label: 'Battery Trace', path: '/operate/batteries' });
-    else if (path.includes('sku')) setSuggestion({ label: 'SKU Studio', path: '/sku' });
+    // Detect if current path can be resolved via aliases
+    const resolved = resolvePath(location.pathname);
+    if (resolved !== location.pathname) {
+      setSuggestion({ label: 'Canonical Detour', path: resolved });
+    } else {
+      // Intelligent guessing based on keywords
+      const path = location.pathname.toLowerCase();
+      if (path.includes('batch')) setSuggestion({ label: 'Production Batches', path: '/operate/batches' });
+      else if (path.includes('inventory')) setSuggestion({ label: 'Inventory Console', path: '/operate/inventory' });
+      else if (path.includes('dispatch')) setSuggestion({ label: 'Dispatch Center', path: '/operate/dispatch' });
+      else if (path.includes('battery')) setSuggestion({ label: 'Asset Traceability', path: '/operate/identity' });
+      else if (path.includes('sku')) setSuggestion({ label: 'Design Studio', path: '/design/sku' });
+      else if (path.includes('runbook')) setSuggestion({ label: 'Control Tower', path: '/runbooks' });
+    }
 
-    // Auto-recovery: redirect to last good route after 4.5s (extended to allow user to read suggestion)
+    // Auto-recovery Detour after 5s
     const timer = setTimeout(() => {
-      if (!suggestion) {
+      const detour = resolvePath(location.pathname);
+      if (detour !== location.pathname) {
+        safeNavigate(navigate, detour, { replace: true });
+      } else if (!suggestion) {
         const safePath = routerSafe.getLastGoodRoute();
-        navigate(safePath, { replace: true });
+        safeNavigate(navigate, safePath, { replace: true });
       }
-    }, 4500);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, [navigate, location, suggestion]);
 
   const handleGoHome = () => {
-    navigate('/', { replace: true });
+    safeNavigate(navigate, '/', { replace: true });
   };
 
   return (
@@ -61,11 +72,11 @@ export default function NotFound() {
             <CardContent className="p-4 flex flex-col gap-3 text-left">
               <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
                 <Info size={16} />
-                <p className="text-[10px] font-black uppercase tracking-widest leading-none">Smart Recovery Hint</p>
+                <p className="text-[10px] font-black uppercase tracking-widest leading-none">Detour Resolution Hint</p>
               </div>
-              <p className="text-xs font-medium">It looks like you're trying to access a legacy or malformed record path. Try returning to the main list:</p>
-              <Button size="sm" onClick={() => navigate(suggestion.path)} className="bg-indigo-600 hover:bg-indigo-700 h-8 gap-2">
-                Open {suggestion.label} <ArrowRight size={14} />
+              <p className="text-xs font-medium">This path is legacy or malformed. We recommend detouring to the official workstation:</p>
+              <Button size="sm" onClick={() => safeNavigate(navigate, suggestion.path)} className="bg-indigo-600 hover:bg-indigo-700 h-8 gap-2">
+                Go to {suggestion.label} <ArrowRight size={14} />
               </Button>
             </CardContent>
           </Card>
@@ -77,7 +88,7 @@ export default function NotFound() {
               <Loader2 className="text-primary h-5 w-5 animate-spin shrink-0" />
               <div className="space-y-0.5">
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Router Safety Check</p>
-                <p className="text-xs text-slate-600 dark:text-slate-400">Verifying safe return vector...</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">Verifying safe landing vector...</p>
               </div>
             </CardContent>
           </Card>

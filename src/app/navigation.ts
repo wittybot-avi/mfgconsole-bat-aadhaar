@@ -1,5 +1,8 @@
+import { NavigateFunction } from 'react-router-dom';
 import { routes } from '../../app/routes';
 import { ScreenId } from '../rbac/screenIds';
+import { isRouteRegistered } from '../../app/routeRegistry';
+import { resolvePath } from './navAliases';
 
 export interface NavItem {
   id: string;
@@ -17,9 +20,38 @@ export interface NavSection {
 }
 
 /**
- * SINGLE SOURCE OF TRUTH FOR SIDEBAR (PP-061)
+ * SAFE NAVIGATION HELPER (PP-061B)
+ * Ensures all programmatic navigation is validated against the registry and aliases.
+ */
+export function safeNavigate(
+  navigate: NavigateFunction, 
+  path: string, 
+  options?: { replace?: boolean; state?: any }
+) {
+  const resolved = resolvePath(path);
+  
+  if (isRouteRegistered(resolved)) {
+    navigate(resolved, options);
+  } else {
+    console.warn(`[NavGuardrail] DETOURED: "${path}" resolved to "${resolved}" which is not in registry. Defaulting to dashboard.`);
+    navigate('/', options);
+  }
+}
+
+/**
+ * SINGLE SOURCE OF TRUTH FOR SIDEBAR (PP-061A)
  */
 export const NAV_SECTIONS: NavSection[] = [
+  {
+    sectionId: 'GOVERN',
+    label: 'Govern',
+    items: [
+      { id: 'control-tower', label: 'Control Tower', screenId: ScreenId.RUNBOOK_HUB, href: () => routes.runbooks() },
+      { id: 'compliance', label: 'Compliance', screenId: ScreenId.COMPLIANCE, href: () => routes.compliance() },
+      { id: 'custody', label: 'Chain of Custody', screenId: ScreenId.CUSTODY, href: () => routes.custody() },
+      { id: 'access-audit', label: 'Access Audit', screenId: ScreenId.RBAC_VIEW, href: () => routes.accessAudit() },
+    ]
+  },
   {
     sectionId: 'OBSERVE',
     label: 'Observe',
@@ -35,15 +67,6 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { id: 'warranty', label: 'Warranty & Returns', screenId: ScreenId.WARRANTY, href: () => routes.warrantyReturns() },
       { id: 'exceptions-inbox', label: 'Exceptions Inbox', screenId: ScreenId.WARRANTY_OVERVIEW, href: () => '#', isComingSoon: true }
-    ]
-  },
-  {
-    sectionId: 'GOVERN',
-    label: 'Govern',
-    items: [
-      { id: 'compliance', label: 'Compliance', screenId: ScreenId.COMPLIANCE, href: () => routes.compliance() },
-      { id: 'custody', label: 'Chain of Custody', screenId: ScreenId.CUSTODY, href: () => routes.custody() },
-      { id: 'access-audit', label: 'Access Audit', screenId: ScreenId.RBAC_VIEW, href: () => routes.accessAudit() },
     ]
   },
   {
@@ -98,7 +121,6 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Admin',
     items: [
       { id: 'settings', label: 'Settings', screenId: ScreenId.SETTINGS, href: () => routes.settings() },
-      { id: 'rbac-admin', label: 'Permissions Matrix', screenId: ScreenId.RBAC_VIEW, href: () => routes.accessAudit() },
     ]
   }
 ];

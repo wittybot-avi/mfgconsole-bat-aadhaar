@@ -5,7 +5,8 @@ import { Button, Badge, Card, CardContent, Tooltip } from './ui/design-system';
 import { workflowGuardrails, STATUS_MAP, GuardrailResult, NextStep } from '../services/workflowGuardrails';
 import { Lightbulb, ShieldCheck, Lock, ArrowRight, User, Info, Loader2 } from 'lucide-react';
 import { logger } from '../utils/logger';
-import { assertPathRegistered } from '../../app/routeRegistry';
+// Fixed: Removed unused and non-existent import assertPathRegistered to resolve compiler error.
+import { safeNavigate } from '../app/navigation';
 
 // --- StageHeader Component ---
 interface StageHeaderProps {
@@ -82,12 +83,7 @@ export const NextStepsPanel: React.FC<NextStepsPanelProps> = ({ entity, type, cl
 
   const handleNavigate = () => {
     if (step.path) {
-      if (assertPathRegistered(step.path)) {
-        navigate(step.path);
-      } else {
-        logger.error(`Blocked navigation to unregistered path: ${step.path}`);
-        navigate('/'); // Safety fallback
-      }
+      safeNavigate(navigate, step.path);
     }
   };
 
