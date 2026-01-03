@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, Link, Outlet, useNavigate } from 'react-router-dom';
 import { 
-  Menu, Bell, Search, Users, LogOut, Zap, AlertTriangle, X, Database, Monitor, Tag, ChevronDown, ChevronUp, Shield,
-  BookOpen, ShieldCheck, History, LayoutDashboard, Activity, BarChart3, Layers, Archive, Box, Truck, Settings, Fingerprint, Plus, Warehouse, ClipboardCheck, ClipboardList, FileText
+  Menu, Bell, Search, Users, LogOut, Zap, AlertTriangle, X, Database, Monitor, Tag
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { Button, Input, Badge, Tooltip } from './ui/design-system';
-import { APP_VERSION, CURRENT_PATCH } from '../../app/patchInfo';
-import { ScreenId, SCREEN_GROUPS } from '../rbac/screenIds';
+import { buildMeta } from '../app/buildMeta';
+import { ScreenId } from '../rbac/screenIds';
 import { canView, getMyPermissions } from '../rbac/can';
 import { APP_ROUTES, getScreenIdForPath, isRouteRegistered } from '../../app/routeRegistry';
 import { ROUTES, routes } from '../../app/routes';
@@ -17,23 +16,25 @@ import { scenarioStore, DemoScenario } from '../demo/scenarioStore';
 import { routerSafe } from '../utils/routerSafe';
 import { HudPill } from './HudPill';
 import { UnifiedDiagnosticPanel } from './UnifiedDiagnosticPanel';
-import { navValidator } from '../app/navValidation';
+import { navIntegrity } from '../app/navigationIntegrity';
+import { NAV_SECTIONS, NavSection, NavItem } from '../app/navigation';
 
 interface SidebarItemProps {
-  icon: any;
+  icon?: any;
   label: string;
   path: string;
   active: boolean;
   disabled?: boolean;
   isComingSoon?: boolean;
   diagnosticInfo?: string;
+  isConfigError?: boolean;
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, path, active, disabled, isComingSoon, diagnosticInfo }) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, path, active, disabled, isComingSoon, diagnosticInfo, isConfigError }) => {
   const content = (
     <div className={`group flex items-center justify-between px-3 py-2 rounded-md transition-all ${disabled ? 'opacity-40 cursor-not-allowed bg-slate-50 dark:bg-slate-800/30' : active ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'}`}>
       <div className="flex items-center gap-3">
-        <Icon size={18} className={disabled ? 'text-slate-400' : ''} />
+        {isConfigError ? <AlertTriangle size={18} className="text-rose-500" /> : Icon && <Icon size={18} className={disabled ? 'text-slate-400' : ''} />}
         <span className="text-sm truncate">{label}</span>
       </div>
       {isComingSoon && (
@@ -53,50 +54,6 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, path, acti
   return <Link to={path}>{content}</Link>;
 };
 
-/**
- * NAV CONFIG FOR PP-060
- */
-interface NavGroup {
-  label: string;
-  screenIds?: ScreenId[];
-  subGroups?: { label: string; screenIds: ScreenId[] }[];
-}
-
-const NAV_STRUCTURE: NavGroup[] = [
-  {
-    label: 'Control Tower',
-    screenIds: SCREEN_GROUPS.CONTROL_TOWER
-  },
-  {
-    label: 'Resolve',
-    screenIds: SCREEN_GROUPS.RESOLVE
-  },
-  {
-    label: 'Observe',
-    screenIds: SCREEN_GROUPS.OBSERVE
-  },
-  {
-    label: 'Design',
-    screenIds: SCREEN_GROUPS.DESIGN
-  },
-  {
-    label: 'Trace',
-    screenIds: SCREEN_GROUPS.TRACE
-  },
-  {
-    label: 'Operate',
-    subGroups: [
-      { label: 'Assembly', screenIds: SCREEN_GROUPS.OPERATE_ASSEMBLY },
-      { label: 'SCM', screenIds: SCREEN_GROUPS.OPERATE_SCM },
-      { label: 'Assure', screenIds: SCREEN_GROUPS.OPERATE_ASSURE },
-    ]
-  },
-  {
-    label: 'Admin',
-    screenIds: SCREEN_GROUPS.ADMIN
-  }
-];
-
 export const Layout = () => {
   const { theme, toggleTheme, currentRole, currentCluster, logout, sidebarOpen, toggleSidebar, addNotification } = useAppStore();
   const location = useLocation();
@@ -106,49 +63,19 @@ export const Layout = () => {
   const [currentScenario, setCurrentScenario] = useState<DemoScenario>(scenarioStore.getScenario());
   const [isSwitching, setIsSwitching] = useState(false);
 
-  // PP-056B Diagnostic State
   const [isDiagOpen, setIsDiagOpen] = useState(() => 
     location.search.includes('diag=1') || localStorage.getItem('DIAG_OPEN') === '1'
   );
-
-  const resolvePath = (id: ScreenId): string => {
-    if (id === ScreenId.DASHBOARD) return routes.dashboard();
-    if (id === ScreenId.TELEMETRY) return routes.telemetry();
-    if (id === ScreenId.ANALYTICS) return routes.analytics();
-    if (id === ScreenId.EOL_QA_QUEUE) return routes.eolHome();
-    if (id === ScreenId.COMPLIANCE) return routes.compliance();
-    if (id === ScreenId.CUSTODY) return routes.custody();
-    if (id === ScreenId.WARRANTY) return routes.warrantyReturns();
-    if (id === ScreenId.RBAC_VIEW) return routes.accessAudit();
-    if (id === ScreenId.CELL_LOTS_LIST) return routes.cellSerialization();
-    if (id === ScreenId.BATCHES_LIST) return routes.batchesList();
-    if (id === ScreenId.MODULE_ASSEMBLY_LIST) return routes.moduleAssemblyList();
-    if (id === ScreenId.PACK_ASSEMBLY_LIST) return routes.packAssemblyList();
-    if (id === ScreenId.INVENTORY) return routes.inventoryList();
-    if (id === ScreenId.DISPATCH_LIST) return routes.dispatchList();
-    if (id === ScreenId.EOL_REVIEW) return routes.eolReview();
-    if (id === ScreenId.SETTINGS) return routes.settings();
-    if (id === ScreenId.EOL_SETUP) return routes.eolStationSetup();
-    if (id === ScreenId.PROVISIONING_STATION_SETUP) return ROUTES.PROVISIONING_SETUP;
-    if (id === ScreenId.PROVISIONING_QUEUE) return ROUTES.PROVISIONING_QUEUE;
-    if (id === ScreenId.RUNBOOK_HUB) return ROUTES.RUNBOOKS;
-    if (id === ScreenId.LINEAGE_VIEW) return ROUTES.LINEAGE_AUDIT;
-    if (id === ScreenId.CELL_LOTS_CREATE) return ROUTES.CELL_SERIALIZATION_NEW;
-    if (id === ScreenId.SKU_LIST) return routes.skuList();
-
-    const config = APP_ROUTES[id];
-    return config?.path || '#';
-  };
 
   useEffect(() => {
     scenarioStore.init();
     if (location?.pathname) {
       routerSafe.trackRoute(location.pathname, location.search);
     }
-    navValidator.validate(NAV_STRUCTURE, resolvePath);
+    // PP-060B: Run Integrity Check
+    navIntegrity.validate();
   }, [location]);
 
-  // Sync diag state from URL
   useEffect(() => {
     if (location.search.includes('diag=1') && !isDiagOpen) {
       setIsDiagOpen(true);
@@ -166,30 +93,12 @@ export const Layout = () => {
     if (!query || searching) return;
     
     setSearching(true);
-    
     try {
-        if (query.startsWith('LOT-') || query.includes('LFP') || query.includes('NMC')) {
-            navigate(`${routes.cellSerialization() || '/trace/cells'}?q=${query}`);
-        }
-        else if (query.startsWith('PB-') || query.startsWith('PACK-')) {
-            if (query.length > 5) navigate(routes.packBuildDetails(query));
-            else navigate(`${routes.packAssemblyList()}?q=${query}`);
-        }
-        else if (query.startsWith('SN-') || query.startsWith('BAT-')) {
-            if (query.length > 4) navigate(routes.batteryIdentityDetails(query));
-            else navigate(`${routes.batteryIdentityList()}?q=${query}`);
-        }
-        else if (query.startsWith('INV-') || query.startsWith('BATT-')) {
-            if (query.length > 5) navigate(routes.inventoryItem(query));
-            else navigate(`${routes.inventoryList()}?q=${query}`);
-        }
-        else {
-            const resolution = await traceSearchService.resolveIdentifier(searchQuery);
-            if (resolution) {
-                navigate(resolution.route);
-            } else {
-                addNotification({ title: 'No Results', message: 'Identifier not found. Use prefixes like LOT- or SN-.', type: 'info' });
-            }
+        const resolution = await traceSearchService.resolveIdentifier(searchQuery);
+        if (resolution) {
+            navigate(resolution.route);
+        } else {
+            addNotification({ title: 'No Results', message: 'Identifier not found. Use prefixes like LOT- or SN-.', type: 'info' });
         }
         setSearchQuery('');
     } catch (err) {
@@ -215,75 +124,61 @@ export const Layout = () => {
     localStorage.setItem('DIAG_OPEN', newState ? '1' : '0');
   };
 
-  const renderNavItems = (ids: ScreenId[]) => {
-    if (!currentCluster) return null;
-    const visibleIds = ids.filter(id => id && canView(currentCluster.id, id));
-    
-    return visibleIds.map(id => {
-      const config = APP_ROUTES[id];
-      if (!config) return null;
-      if (id.includes('DETAIL') || id.includes('EDIT') || id.includes('_RUN') || id.includes('_TAB')) return null;
-      
-      const path = resolvePath(id);
-      const displayPath = path.includes(':') ? path.split('/:')[0] : path;
-      
-      let label = config.label;
-      if (id === ScreenId.RUNBOOK_HUB) label = 'SOP Library';
-      if (id === ScreenId.RBAC_VIEW) label = 'Access Audit';
-
-      return (
-        <SidebarItem 
-          key={id}
-          icon={config.icon} 
-          label={label} 
-          path={displayPath} 
-          active={location.pathname === displayPath || (location.pathname.startsWith(displayPath) && displayPath !== '/')}
-        />
-      );
-    });
-  };
-
-  const renderNavGroup = (group: NavGroup) => {
+  const renderNavSection = (section: NavSection) => {
     if (!currentCluster) return null;
 
-    if (group.screenIds) {
-      const visibleItems = group.screenIds.filter(id => id && canView(currentCluster.id, id));
+    const checkAccess = (item: NavItem) => canView(currentCluster.id, item.screenId);
+
+    // 1. Process Flat Items
+    if (section.items) {
+      const visibleItems = section.items.filter(checkAccess);
       const hasVisibleItems = visibleItems.length > 0;
-      const originalCount = group.screenIds.length;
+      const originalCount = section.items.length;
 
-      // Diagnostic message for empty sections
-      const hiddenIds = group.screenIds.filter(id => !canView(currentCluster.id, id));
-      const diagMsg = `Filtered: ${hiddenIds.join(', ')} (Incompatible Cluster: ${currentCluster.id})`;
-
-      return (
-        <div className="mb-6" key={group.label}>
-          <h3 className="px-3 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-80">{group.label}</h3>
-          <div className="space-y-1">
-            {hasVisibleItems ? renderNavItems(group.screenIds) : originalCount > 0 && (
+      if (originalCount > 0 && !hasVisibleItems) {
+        if (isDiagOpen) {
+          return (
+            <div className="mb-6 opacity-40 grayscale" key={section.sectionId}>
+              <h3 className="px-3 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{section.label} (FILTERED)</h3>
               <SidebarItem 
-                icon={AlertTriangle} 
                 label="Section temporarily unavailable" 
                 path={ROUTES.DASHBOARD} 
                 active={false} 
                 disabled={true} 
-                diagnosticInfo={diagMsg}
+                diagnosticInfo={`All ${originalCount} items filtered for cluster ${currentCluster.id}`}
               />
-            )}
+            </div>
+          );
+        }
+        return null;
+      }
+
+      return (
+        <div className="mb-6" key={section.sectionId}>
+          <h3 className="px-3 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-80">{section.label}</h3>
+          <div className="space-y-1">
+            {visibleItems.map(item => {
+              const routeCfg = APP_ROUTES[item.screenId];
+              return (
+                <SidebarItem 
+                  key={item.id}
+                  icon={routeCfg?.icon}
+                  label={item.label}
+                  path={item.href()}
+                  active={location.pathname === item.href() || (location.pathname.startsWith(item.href()) && item.href() !== '/')}
+                />
+              );
+            })}
           </div>
         </div>
       );
     }
 
-    if (group.subGroups) {
-      const subGroupElements = group.subGroups.map(sg => {
-        const visibleItems = sg.screenIds.filter(id => id && canView(currentCluster.id, id));
-        const hasVisibleItems = visibleItems.length > 0;
-        const originalCount = sg.screenIds.length;
-        
-        const hiddenIds = sg.screenIds.filter(id => !canView(currentCluster.id, id));
-        const diagMsg = `Filtered: ${hiddenIds.join(', ')} (Cluster: ${currentCluster.id})`;
-
-        if (!hasVisibleItems && originalCount === 0) return null;
+    // 2. Process SubGroups (Operate Pattern)
+    if (section.subGroups) {
+      const subGroupElements = section.subGroups.map(sg => {
+        const visibleItems = sg.items.filter(checkAccess);
+        if (visibleItems.length === 0) return null;
 
         return (
           <div key={sg.label} className="mt-4 first:mt-0">
@@ -293,16 +188,18 @@ export const Layout = () => {
               <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
             </h4>
             <div className="space-y-1">
-              {hasVisibleItems ? renderNavItems(sg.screenIds) : (
-                <SidebarItem 
-                  icon={AlertTriangle} 
-                  label="Sub-section unavailable" 
-                  path={ROUTES.DASHBOARD} 
-                  active={false} 
-                  disabled={true} 
-                  diagnosticInfo={diagMsg}
-                />
-              )}
+              {visibleItems.map(item => {
+                const routeCfg = APP_ROUTES[item.screenId];
+                return (
+                  <SidebarItem 
+                    key={item.id}
+                    icon={routeCfg?.icon}
+                    label={item.label}
+                    path={item.href()}
+                    active={location.pathname === item.href()}
+                  />
+                );
+              })}
             </div>
           </div>
         );
@@ -311,8 +208,8 @@ export const Layout = () => {
       if (subGroupElements.length === 0) return null;
 
       return (
-        <div className="mb-6" key={group.label}>
-          <h3 className="px-3 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-80">{group.label}</h3>
+        <div className="mb-6" key={section.sectionId}>
+          <h3 className="px-3 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-80">{section.label}</h3>
           <div className="space-y-1">
             {subGroupElements}
           </div>
@@ -326,10 +223,9 @@ export const Layout = () => {
   if (!currentRole || !currentCluster) return null;
   const isSuperUser = currentCluster.id === 'CS';
 
-  // Diagnostic metadata
   const screenId = getScreenIdForPath(location.pathname) || 'UNKNOWN';
   const registered = isRouteRegistered(location.pathname);
-  const routeConfig = APP_ROUTES[screenId];
+  const routeConfig = APP_ROUTES[screenId as string];
   const permissions = getMyPermissions(currentCluster.id, screenId as ScreenId);
 
   return (
@@ -338,7 +234,7 @@ export const Layout = () => {
         <UnifiedDiagnosticPanel 
           isOpen={isDiagOpen}
           onToggle={handleToggleDiag}
-          screenId={screenId}
+          screenId={screenId as string}
           path={location.pathname}
           routePattern={routeConfig?.path || 'UNKNOWN'}
           componentName={routeConfig?.componentName || 'UNDEFINED'}
@@ -346,7 +242,7 @@ export const Layout = () => {
           cluster={currentCluster.id}
           permissions={permissions}
           isRegistered={registered}
-          patchId={CURRENT_PATCH.id}
+          patchId={buildMeta.patchId}
           scenario={scenarioStore.getScenario()}
         />
       )}
@@ -361,7 +257,7 @@ export const Layout = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto py-6 px-3">
-            {NAV_STRUCTURE.map(group => renderNavGroup(group))}
+            {NAV_SECTIONS.map(section => renderNavSection(section))}
           </div>
 
           <div className="p-4 border-t dark:border-slate-800 shrink-0">
@@ -408,9 +304,6 @@ export const Layout = () => {
                     </select>
                 </div>
               </div>
-              <p className="hidden md:block text-[9px] text-slate-400 font-bold uppercase tracking-widest pl-14">
-                Try: <span className="text-primary/70">LOT-</span>, <span className="text-primary/70">PB-</span>, <span className="text-primary/70">SN-</span>, <span className="text-primary/70">INV-</span>
-              </p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -434,11 +327,11 @@ export const Layout = () => {
       {DIAGNOSTIC_MODE && (
         <HudPill 
           onToggle={handleToggleDiag}
-          patchId={CURRENT_PATCH.id}
+          patchId={buildMeta.patchId}
           path={location.pathname}
           isRegistered={registered}
-          screenId={screenId}
-          isDiagParamActive={location.search.includes('diag=1')}
+          screenId={screenId as string}
+          isDiagParamActive={isDiagOpen}
         />
       )}
     </div>
