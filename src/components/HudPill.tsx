@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tag, Monitor, ChevronUp, ChevronDown, Clock, GitBranch, History } from 'lucide-react';
+import { Tag, Monitor, ChevronUp, ChevronDown, Clock, GitBranch, History, Compass } from 'lucide-react';
 import { buildMeta } from '../app/buildMeta';
 
 interface HudPillProps {
@@ -9,6 +9,7 @@ interface HudPillProps {
   isRegistered: boolean;
   screenId: string;
   isDiagParamActive: boolean;
+  navMetrics?: { total: number; enabled: number; disabled: number };
 }
 
 export const HudPill: React.FC<HudPillProps> = ({
@@ -18,6 +19,7 @@ export const HudPill: React.FC<HudPillProps> = ({
   isRegistered,
   screenId,
   isDiagParamActive,
+  navMetrics,
 }) => {
   const [isRevisionsOpen, setIsRevisionsOpen] = useState(false);
 
@@ -85,9 +87,21 @@ export const HudPill: React.FC<HudPillProps> = ({
             title={`Revision: ${buildMeta.patchName} (${buildMeta.updatedAt})`}
           >
             <GitBranch size={10} />
-            <span className="font-bold">BUILD {buildMeta.appVersion} | {buildMeta.patchId}</span>
+            <span className="font-bold">BUILD {buildMeta.appVersion} | {patchId}</span>
             {isRevisionsOpen ? <ChevronDown size={10} /> : <ChevronUp size={10} />}
           </div>
+          {navMetrics && (
+            <>
+              <span className="opacity-30">|</span>
+              <div className="flex items-center gap-1">
+                <Compass size={10} className="text-emerald-400" />
+                <span className="text-slate-400 uppercase tracking-tighter">NAV:</span>
+                <span className="font-bold text-slate-100">
+                  {navMetrics.total}/{navMetrics.enabled}/{navMetrics.disabled}
+                </span>
+              </div>
+            </>
+          )}
           <span className="opacity-30">|</span>
           <div className="flex items-center gap-1 max-w-[150px] truncate">
             <span className="text-slate-400">PATH:</span>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useLocation, Link, Outlet, useNavigate } from 'react-router-dom';
 import { 
   Menu, Bell, Search, Users, LogOut, Zap, AlertTriangle, X, Database, Monitor, Tag
@@ -25,20 +25,21 @@ interface SidebarItemProps {
   path: string;
   active: boolean;
   disabled?: boolean;
-  isComingSoon?: boolean;
+  badge?: string;
   diagnosticInfo?: string;
-  isConfigError?: boolean;
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, path, active, disabled, isComingSoon, diagnosticInfo, isConfigError }) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, path, active, disabled, badge, diagnosticInfo }) => {
   const content = (
     <div className={`group flex items-center justify-between px-3 py-2 rounded-md transition-all ${disabled ? 'opacity-40 cursor-not-allowed bg-slate-50 dark:bg-slate-800/30' : active ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'}`}>
       <div className="flex items-center gap-3">
-        {isConfigError ? <AlertTriangle size={18} className="text-rose-500" /> : Icon && <Icon size={18} className={disabled ? 'text-slate-400' : ''} />}
+        {Icon && <Icon size={18} className={disabled ? 'text-slate-400' : ''} />}
         <span className="text-sm truncate">{label}</span>
       </div>
-      {isComingSoon && (
-        <Badge variant="outline" className="text-[7px] h-3 px-1 font-black bg-slate-100 dark:bg-slate-800 uppercase tracking-tighter">WIP</Badge>
+      {badge && (
+        <Badge variant={badge === 'RESTRICTED' ? 'destructive' : 'outline'} className="text-[7px] h-3 px-1 font-black uppercase tracking-tighter">
+          {badge}
+        </Badge>
       )}
     </div>
   );
@@ -72,7 +73,6 @@ export const Layout = () => {
     if (location?.pathname) {
       routerSafe.trackRoute(location.pathname, location.search);
     }
-    // PP-060B: Run Integrity Check
     navIntegrity.validate();
   }, [location]);
 
@@ -81,6 +81,27 @@ export const Layout = () => {
       setIsDiagOpen(true);
     }
   }, [location.search]);
+
+  /**
+   * PP-061: Compute Nav Metrics for HUD
+   */
+  const navMetrics = useMemo(() => {
+    if (!currentCluster) return { total: 0, enabled: 0, disabled: 0 };
+    let total = 0;
+    let enabled = 0;
+    
+    NAV_SECTIONS.forEach(section => {
+      const items = section.items || section.subGroups?.flatMap(sg => sg.items) || [];
+      items.forEach(item => {
+        total++;
+        const isAllowed = canView(currentCluster.id, item.screenId);
+        const isRegistered = isRouteRegistered(item.href());
+        if (isAllowed && isRegistered) enabled++;
+      });
+    });
+
+    return { total, enabled, disabled: total - enabled };
+  }, [currentCluster]);
 
   const handleLogout = () => {
     logout();
@@ -124,100 +145,80 @@ export const Layout = () => {
     localStorage.setItem('DIAG_OPEN', newState ? '1' : '0');
   };
 
+  /**
+   * PP-061: Nav Visibility Guard Implementation
+   */
   const renderNavSection = (section: NavSection) => {
     if (!currentCluster) return null;
 
-    const checkAccess = (item: NavItem) => canView(currentCluster.id, item.screenId);
+    const renderItem = (item: NavItem) => {
+      const path = item.href();
+      const isRegistered = isRouteRegistered(path);
+      const isAllowed = canView(currentCluster.id, item.screenId);
+      const routeCfg = APP_ROUTES[item.screenId];
 
-    // 1. Process Flat Items
-    if (section.items) {
-      const visibleItems = section.items.filter(checkAccess);
-      const hasVisibleItems = visibleItems.length > 0;
-      const originalCount = section.items.length;
+      let badge: string | undefined = undefined;
+      let diagInfo: string | undefined = undefined;
+      let disabled = false;
 
-      if (originalCount > 0 && !hasVisibleItems) {
-        if (isDiagOpen) {
-          return (
-            <div className="mb-6 opacity-40 grayscale" key={section.sectionId}>
-              <h3 className="px-3 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{section.label} (FILTERED)</h3>
-              <SidebarItem 
-                label="Section temporarily unavailable" 
-                path={ROUTES.DASHBOARD} 
-                active={false} 
-                disabled={true} 
-                diagnosticInfo={`All ${originalCount} items filtered for cluster ${currentCluster.id}`}
-              />
-            </div>
-          );
-        }
-        return null;
+      if (!isRegistered) {
+        badge = 'UNREGISTERED';
+        diagInfo = `Route ${path} not registered in ledger.`;
+        disabled = true;
+      } else if (!isAllowed) {
+        badge = 'RESTRICTED';
+        diagInfo = `RBAC Cluster ${currentCluster.id} denied access to ${item.screenId}.`;
+        disabled = true;
+      }
+
+      if (item.isComingSoon) {
+        badge = 'SOON';
+        disabled = true;
       }
 
       return (
-        <div className="mb-6" key={section.sectionId}>
-          <h3 className="px-3 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-80">{section.label}</h3>
-          <div className="space-y-1">
-            {visibleItems.map(item => {
-              const routeCfg = APP_ROUTES[item.screenId];
-              return (
-                <SidebarItem 
-                  key={item.id}
-                  icon={routeCfg?.icon}
-                  label={item.label}
-                  path={item.href()}
-                  active={location.pathname === item.href() || (location.pathname.startsWith(item.href()) && item.href() !== '/')}
-                />
-              );
-            })}
-          </div>
-        </div>
+        <SidebarItem 
+          key={item.id}
+          icon={routeCfg?.icon}
+          label={item.label}
+          path={path}
+          active={location.pathname === path}
+          disabled={disabled}
+          badge={badge}
+          diagnosticInfo={diagInfo}
+        />
       );
-    }
+    };
 
-    // 2. Process SubGroups (Operate Pattern)
-    if (section.subGroups) {
-      const subGroupElements = section.subGroups.map(sg => {
-        const visibleItems = sg.items.filter(checkAccess);
-        if (visibleItems.length === 0) return null;
+    const flatItems = section.items || [];
+    const hasItems = flatItems.length > 0 || (section.subGroups && section.subGroups.length > 0);
 
-        return (
-          <div key={sg.label} className="mt-4 first:mt-0">
-            <h4 className="px-3 mb-1.5 text-[9px] font-bold text-slate-400/60 uppercase tracking-widest flex items-center gap-2">
-              <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-              {sg.label}
-              <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-            </h4>
-            <div className="space-y-1">
-              {visibleItems.map(item => {
-                const routeCfg = APP_ROUTES[item.screenId];
-                return (
-                  <SidebarItem 
-                    key={item.id}
-                    icon={routeCfg?.icon}
-                    label={item.label}
-                    path={item.href()}
-                    active={location.pathname === item.href()}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        );
-      }).filter(Boolean);
-
-      if (subGroupElements.length === 0) return null;
-
-      return (
-        <div className="mb-6" key={section.sectionId}>
-          <h3 className="px-3 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-80">{section.label}</h3>
-          <div className="space-y-1">
-            {subGroupElements}
-          </div>
+    return (
+      <div className="mb-6" key={section.sectionId}>
+        <h3 className="px-3 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-80">{section.label}</h3>
+        <div className="space-y-1">
+          {!hasItems ? (
+             <SidebarItem label="Section Setup Pending" path="#" active={false} disabled={true} icon={AlertTriangle} />
+          ) : (
+            <>
+              {flatItems.map(renderItem)}
+              {section.subGroups?.map(sg => (
+                <div key={sg.label} className="mt-4 first:mt-0">
+                  <h4 className="px-3 mb-1.5 text-[9px] font-bold text-slate-400/60 uppercase tracking-widest flex items-center gap-2">
+                    <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
+                    {sg.label}
+                    <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
+                  </h4>
+                  <div className="space-y-1">
+                    {sg.items.map(renderItem)}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
         </div>
-      );
-    }
-
-    return null;
+      </div>
+    );
   };
 
   if (!currentRole || !currentCluster) return null;
@@ -257,7 +258,7 @@ export const Layout = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto py-6 px-3">
-            {NAV_SECTIONS.map(section => renderNavSection(section))}
+            {NAV_SECTIONS.map(renderNavSection)}
           </div>
 
           <div className="p-4 border-t dark:border-slate-800 shrink-0">
@@ -332,6 +333,7 @@ export const Layout = () => {
           isRegistered={registered}
           screenId={screenId as string}
           isDiagParamActive={isDiagOpen}
+          navMetrics={navMetrics}
         />
       )}
     </div>
