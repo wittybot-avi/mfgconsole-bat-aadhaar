@@ -8,6 +8,7 @@ import { canView } from '../rbac/can';
 import { ScreenId } from '../rbac/screenIds';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Table, TableHeader, TableRow, TableHead, TableCell, Button } from '../components/ui/design-system';
 import { Truck, CheckCircle, AlertTriangle, XCircle, Clock, ArrowRight } from 'lucide-react';
+import { routes } from '../../app/routes';
 
 const KPICard = ({ title, value, icon: Icon, color, onClick }: any) => (
     <Card className={`cursor-pointer hover:shadow-md transition-all border-l-4 border-l-${color}-500`} onClick={onClick}>
@@ -142,6 +143,10 @@ export default function Custody() {
         setLoading(false);
     };
 
+    const handleNavigateDetail = (id: string) => {
+        navigate(routes.custodyDetail(id));
+    };
+
     if (!showOverview && !showList && !showExceptions) return <div className="p-10 text-center">Access Denied</div>;
 
     return (
@@ -174,21 +179,21 @@ export default function Custody() {
                                     <KPICard title="SLA Breaches" value={metrics.slaBreaches} icon={AlertTriangle} color="slate" onClick={() => setActiveTab('exceptions')} />
                                 </div>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    <ShipmentsList shipments={shipments} onClick={(id) => navigate(`/custody/${id}`)} />
-                                    {showExceptions && <ExceptionsList exceptions={exceptions} onClick={(id) => navigate(`/custody/${id}`)} />}
+                                    <ShipmentsList shipments={shipments} onClick={handleNavigateDetail} />
+                                    {showExceptions && <ExceptionsList exceptions={exceptions} onClick={handleNavigateDetail} />}
                                 </div>
                             </div>
                         )}
 
                         {activeTab === 'list' && (
                             <div className="space-y-6 animate-in fade-in">
-                                <ShipmentsList shipments={shipments} onClick={(id) => navigate(`/custody/${id}`)} />
+                                <ShipmentsList shipments={shipments} onClick={handleNavigateDetail} />
                             </div>
                         )}
 
                         {activeTab === 'exceptions' && (
                             <div className="space-y-6 animate-in fade-in">
-                                <ExceptionsList exceptions={exceptions} onClick={(id) => navigate(`/custody/${id}`)} />
+                                <ExceptionsList exceptions={exceptions} onClick={handleNavigateDetail} />
                             </div>
                         )}
                     </>

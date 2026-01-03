@@ -102,10 +102,23 @@ export function getScreenIdForPath(pathname: string | null | undefined): ScreenI
 export function isRouteRegistered(pathname: string): boolean {
   if (!pathname) return false;
   try {
+    // Remove query params for registry check
+    const cleanPath = pathname.split('?')[0];
     return (Object.values(APP_ROUTES) as RouteConfig[]).some(config => 
-      !!matchPath({ path: config.path || '', end: true }, pathname)
+      !!matchPath({ path: config.path || '', end: true }, cleanPath)
     );
   } catch (e) {
     return false;
   }
+}
+
+/**
+ * PP-060A: Safety utility to ensure navigation coordinates are valid.
+ */
+export function assertPathRegistered(path: string): boolean {
+  const registered = isRouteRegistered(path);
+  if (!registered) {
+    console.error(`[RouterGuardrail] UNREGISTERED NAVIGATION: "${path}" is not in routeRegistry.`);
+  }
+  return registered;
 }

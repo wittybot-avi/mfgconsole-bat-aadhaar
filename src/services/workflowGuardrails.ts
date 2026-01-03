@@ -13,6 +13,7 @@ import {
   DispatchOrder,
   DispatchStatus
 } from '../domain/types';
+import { routes } from '../../app/routes';
 
 export interface GuardrailResult {
   allowed: boolean;
@@ -226,38 +227,38 @@ class WorkflowGuardrailsService {
   getNextRecommendedStep(entity: any, type: 'SKU' | 'BATCH' | 'MODULE' | 'PACK' | 'BATTERY' | 'LOT' | 'DISPATCH'): NextStep | null {
     switch (type) {
       case 'LOT':
-        if (!entity.poNumber) return { label: 'Capture Docs', path: '', description: 'Bind PO/GRN identifiers to this lot.', roleRequired: 'Logistics' };
-        if (entity.status === 'DRAFT') return { label: 'Generate IDs', path: '', description: 'Initialize unique cell identities.', roleRequired: 'Logistics' };
-        if (entity.scannedCount < entity.generatedCount) return { label: 'Complete Scans', path: '', description: 'Perform physical verification of identities.', roleRequired: 'Operator' };
-        if (!entity.qcPassed) return { label: 'Incoming QC', path: '', description: 'Record material inspection result.', roleRequired: 'QA' };
-        if (entity.status === 'READY_TO_BIND') return { label: 'Release to Production', path: '', description: 'Allow these cells to be consumed in assembly.', roleRequired: 'Logistics' };
+        if (!entity.poNumber) return { label: 'Capture Docs', path: routes.cellLotDetails(entity.id), description: 'Bind PO/GRN identifiers to this lot.', roleRequired: 'Logistics' };
+        if (entity.status === 'DRAFT') return { label: 'Generate IDs', path: routes.cellLotDetails(entity.id), description: 'Initialize unique cell identities.', roleRequired: 'Logistics' };
+        if (entity.scannedCount < entity.generatedCount) return { label: 'Complete Scans', path: routes.cellLotDetails(entity.id), description: 'Perform physical verification of identities.', roleRequired: 'Operator' };
+        if (!entity.qcPassed) return { label: 'Incoming QC', path: routes.cellLotDetails(entity.id), description: 'Record material inspection result.', roleRequired: 'QA' };
+        if (entity.status === 'READY_TO_BIND') return { label: 'Release to Production', path: routes.cellLotDetails(entity.id), description: 'Allow these cells to be consumed in assembly.', roleRequired: 'Logistics' };
         break;
       case 'SKU':
-        if (entity.status === 'DRAFT') return { label: 'Activate Spec', path: '', description: 'Promote this blueprint to production status.', roleRequired: 'Engineering' };
-        if (entity.status === 'ACTIVE') return { label: 'Create Batch', path: '/batches', description: 'Start a manufacturing run using this blueprint.', roleRequired: 'Production' };
+        if (entity.status === 'DRAFT') return { label: 'Activate Spec', path: routes.skuDetails(entity.id), description: 'Promote this blueprint to production status.', roleRequired: 'Engineering' };
+        if (entity.status === 'ACTIVE') return { label: 'Create Batch', path: routes.batchesList(), description: 'Start a manufacturing run using this blueprint.', roleRequired: 'Production' };
         break;
       case 'BATCH':
-        if (entity.status === BatchStatus.DRAFT) return { label: 'Release to Line', path: '', description: 'Begin assembly operations for this lot.', roleRequired: 'Supervisor' };
-        if (entity.status === BatchStatus.IN_PRODUCTION) return { label: 'Link Components', path: '/operate/modules', description: 'Bind individual cells and modules to this batch.', roleRequired: 'Operator' };
+        if (entity.status === BatchStatus.DRAFT) return { label: 'Release to Line', path: routes.batchDetails(entity.id), description: 'Begin assembly operations for this lot.', roleRequired: 'Supervisor' };
+        if (entity.status === BatchStatus.IN_PRODUCTION) return { label: 'Link Components', path: routes.moduleAssemblyList(), description: 'Bind individual cells and modules to this batch.', roleRequired: 'Operator' };
         break;
       case 'MODULE':
-        if (entity.status === ModuleStatus.IN_PROGRESS && entity.boundCellSerials.length < entity.targetCells) return { label: 'Bind Cells', path: '', description: 'Scan cell serials into the digital ledger.', roleRequired: 'Operator' };
-        if (entity.status === ModuleStatus.IN_PROGRESS && entity.boundCellSerials.length === entity.targetCells) return { label: 'Seal Module', path: '', description: 'Lock the sub-assembly and verify integrity.', roleRequired: 'Operator' };
-        if (entity.status === ModuleStatus.SEALED) return { label: 'Link to Pack Build', path: '/operate/packs', description: 'Integrate this sealed module into a pack build.', roleRequired: 'Operator' };
+        if (entity.status === ModuleStatus.IN_PROGRESS && entity.boundCellSerials.length < entity.targetCells) return { label: 'Bind Cells', path: routes.moduleDetails(entity.id), description: 'Scan cell serials into the digital ledger.', roleRequired: 'Operator' };
+        if (entity.status === ModuleStatus.IN_PROGRESS && entity.boundCellSerials.length === entity.targetCells) return { label: 'Seal Module', path: routes.moduleDetails(entity.id), description: 'Lock the sub-assembly and verify integrity.', roleRequired: 'Operator' };
+        if (entity.status === ModuleStatus.SEALED) return { label: 'Link to Pack Build', path: routes.packAssemblyList(), description: 'Integrate this sealed module into a pack build.', roleRequired: 'Operator' };
         break;
       case 'PACK':
-        if (entity.status === PackStatus.DRAFT || entity.status === PackStatus.IN_PROGRESS) return { label: 'QC & Finalize', path: '', description: 'Perform assembly QC and lock the record.', roleRequired: 'Operator' };
-        if (entity.status === PackStatus.READY_FOR_EOL) return { label: 'Run EOL Test', path: '/eol', description: 'Hand over to QA for electrical verification.', roleRequired: 'QA' };
-        if (entity.eolStatus === 'PASS' && !entity.batteryRecordCreated) return { label: 'Create Identity', path: '', description: 'Generate certified battery twin record.', roleRequired: 'QA' };
+        if (entity.status === PackStatus.DRAFT || entity.status === PackStatus.IN_PROGRESS) return { label: 'QC & Finalize', path: routes.packBuildDetails(entity.id), description: 'Perform assembly QC and lock the record.', roleRequired: 'Operator' };
+        if (entity.status === PackStatus.READY_FOR_EOL) return { label: 'Run EOL Test', path: routes.eolRun(entity.id), description: 'Hand over to QA for electrical verification.', roleRequired: 'QA' };
+        if (entity.eolStatus === 'PASS' && !entity.batteryRecordCreated) return { label: 'Create Identity', path: routes.eolDetails(entity.id), description: 'Generate certified battery twin record.', roleRequired: 'QA' };
         break;
       case 'BATTERY':
-        if (entity.provisioningStatus !== 'DONE') return { label: 'Finalize Provisioning', path: '/provisioning', description: 'Connect BMS and verify config profile.', roleRequired: 'BMS Engineer' };
-        if (entity.status === BatteryStatus.PROVISIONING && entity.provisioningStatus === 'DONE') return { label: 'Move to Inventory', path: '/inventory', description: 'Confirm placement on warehouse shelf.', roleRequired: 'Logistics' };
+        if (entity.provisioningStatus !== 'DONE') return { label: 'Finalize Provisioning', path: routes.provisioningWorkstation(entity.id), description: 'Connect BMS and verify config profile.', roleRequired: 'BMS Engineer' };
+        if (entity.status === BatteryStatus.PROVISIONING && entity.provisioningStatus === 'DONE') return { label: 'Move to Inventory', path: routes.inventoryList(), description: 'Confirm placement on warehouse shelf.', roleRequired: 'Logistics' };
         break;
       case 'DISPATCH':
-        if (entity.batteryIds.length === 0) return { label: 'Add Units', path: '', description: 'Select certified packs for this shipment.', roleRequired: 'Logistics' };
-        if (!entity.packingListRef) return { label: 'Prepare Docs', path: '', description: 'Generate required transport documentation.', roleRequired: 'Logistics' };
-        if (entity.status === DispatchStatus.DRAFT) return { label: 'Authorize', path: '', description: 'Formal release for transport execution.', roleRequired: 'Supervisor' };
+        if (entity.batteryIds.length === 0) return { label: 'Add Units', path: routes.dispatchDetails(entity.id), description: 'Select certified packs for this shipment.', roleRequired: 'Logistics' };
+        if (!entity.packingListRef) return { label: 'Prepare Docs', path: routes.dispatchDetails(entity.id), description: 'Generate required transport documentation.', roleRequired: 'Logistics' };
+        if (entity.status === DispatchStatus.DRAFT) return { label: 'Authorize', path: routes.dispatchDetails(entity.id), description: 'Formal release for transport execution.', roleRequired: 'Supervisor' };
         break;
     }
     return null;

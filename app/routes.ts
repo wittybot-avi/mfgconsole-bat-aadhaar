@@ -1,5 +1,5 @@
 /**
- * Global Route Constants (PP-057)
+ * Global Route Constants (PP-060A)
  */
 export const ROUTES = {
   DASHBOARD: '/',
@@ -105,10 +105,16 @@ export const routes = {
   dispatchList: () => ROUTES.DISPATCH,
   dispatchDetails: (id?: string) => ROUTES.DISPATCH_DETAIL.replace(':id', safeId(id)),
 
+  // Provisioning
+  provisioningQueue: () => ROUTES.PROVISIONING_QUEUE,
+  provisioningWorkstation: (id?: string) => id ? `${ROUTES.PROVISIONING_WORKSTATION}?batteryId=${id}` : ROUTES.PROVISIONING_WORKSTATION,
+
   // Assure
   eolHome: () => ROUTES.EOL_QUEUE,
   eolQueue: () => ROUTES.EOL_QUEUE,
   eolDetails: (id?: string) => ROUTES.EOL_DETAILS.replace(':buildId', safeId(id)),
+  eolRun: (id?: string) => ROUTES.EOL_RUN.replace(':buildId', safeId(id)),
+  eolAudit: (id?: string) => ROUTES.EOL_AUDIT.replace(':buildId', safeId(id)),
   eolStationSetup: () => ROUTES.EOL_SETUP,
   eolReview: () => ROUTES.EOL_REVIEW,
 
@@ -120,6 +126,7 @@ export const routes = {
   // Govern & Resolve
   compliance: () => ROUTES.COMPLIANCE,
   custody: () => ROUTES.CUSTODY,
+  custodyDetail: (id: string) => ROUTES.CUSTODY_DETAIL.replace(':dispatchId', safeId(id)),
   warrantyReturns: () => ROUTES.WARRANTY_RETURNS,
   warrantyIntake: () => ROUTES.WARRANTY_INTAKE,
 

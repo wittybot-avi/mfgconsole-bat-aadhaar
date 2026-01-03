@@ -1,4 +1,3 @@
-
 import React, { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../lib/store';
@@ -6,6 +5,7 @@ import { Button, Badge, Card, CardContent, Tooltip } from './ui/design-system';
 import { workflowGuardrails, STATUS_MAP, GuardrailResult, NextStep } from '../services/workflowGuardrails';
 import { Lightbulb, ShieldCheck, Lock, ArrowRight, User, Info, Loader2 } from 'lucide-react';
 import { logger } from '../utils/logger';
+import { assertPathRegistered } from '../../app/routeRegistry';
 
 // --- StageHeader Component ---
 interface StageHeaderProps {
@@ -70,7 +70,6 @@ export const StageHeader: React.FC<StageHeaderProps> = ({
 // --- NextStepsPanel Component ---
 interface NextStepsPanelProps {
   entity: any;
-  // Fix: Added 'LOT' and 'DISPATCH' to satisfy type checks in pages using these entity types
   type: 'SKU' | 'BATCH' | 'MODULE' | 'PACK' | 'BATTERY' | 'LOT' | 'DISPATCH';
   className?: string;
 }
@@ -80,6 +79,17 @@ export const NextStepsPanel: React.FC<NextStepsPanelProps> = ({ entity, type, cl
   const step = workflowGuardrails.getNextRecommendedStep(entity, type);
   
   if (!step) return null;
+
+  const handleNavigate = () => {
+    if (step.path) {
+      if (assertPathRegistered(step.path)) {
+        navigate(step.path);
+      } else {
+        logger.error(`Blocked navigation to unregistered path: ${step.path}`);
+        navigate('/'); // Safety fallback
+      }
+    }
+  };
 
   return (
     <Card className={`bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800/50 border-2 border-dashed shadow-none animate-in zoom-in-95 duration-300 ${className}`}>
@@ -99,7 +109,7 @@ export const NextStepsPanel: React.FC<NextStepsPanelProps> = ({ entity, type, cl
                 size="sm" 
                 variant="link" 
                 className="p-0 h-auto text-indigo-600 dark:text-indigo-400 font-bold gap-1.5 hover:gap-2 transition-all"
-                onClick={() => navigate(step.path)}
+                onClick={handleNavigate}
               >
                 Go to {step.label} <ArrowRight size={14} />
               </Button>

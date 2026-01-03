@@ -119,6 +119,8 @@ export default function App() {
               <Route path="details/:buildId" element={<RouteGuard screen={ScreenId.EOL_DETAILS}><EolDetails /></RouteGuard>} />
               <Route path="stations" element={<RouteGuard screen={ScreenId.EOL_SETUP}><EolStationSetup /></RouteGuard>} />
               <Route path="review" element={<RouteGuard screen={ScreenId.EOL_REVIEW}><EolReview /></RouteGuard>} />
+              <Route path="run/:buildId" element={<RouteGuard screen={ScreenId.EOL_RUN_TEST}><EolRunTest /></RouteGuard>} />
+              <Route path="audit/:buildId" element={<RouteGuard screen={ScreenId.EOL_AUDIT_DETAIL}><EolAuditDetail /></RouteGuard>} />
             </Route>
 
             {/* Resolve */}
@@ -150,6 +152,10 @@ export default function App() {
             <Route path="inventory" element={<Navigate to="/operate/inventory" replace />} />
             <Route path="dispatch" element={<Navigate to="/operate/dispatch" replace />} />
             <Route path="eol" element={<Navigate to="/assure/eol" replace />} />
+            
+            {/* PP-060A Redirects */}
+            <Route path="custody" element={<Navigate to="/govern/chain-of-custody" replace />} />
+            <Route path="custody/:id" element={<RedirectToCustody />} />
 
             <Route path="*" element={<NotFound />} />
           </Route>
@@ -157,4 +163,12 @@ export default function App() {
       </HashRouter>
     </ErrorBoundary>
   );
+}
+
+/**
+ * Helper to handle parameterized legacy redirects
+ */
+function RedirectToCustody() {
+  const { id } = useParams();
+  return <Navigate to={`/govern/chain-of-custody/${id}`} replace />;
 }
