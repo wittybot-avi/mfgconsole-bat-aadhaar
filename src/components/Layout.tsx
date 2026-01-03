@@ -5,7 +5,7 @@ import {
   BookOpen, ShieldCheck, History, LayoutDashboard, Activity, BarChart3, Layers, Archive, Box, Truck, Settings, Fingerprint, Plus, Warehouse, ClipboardCheck, ClipboardList, FileText
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
-import { Button, Input, Badge } from './ui/design-system';
+import { Button, Input, Badge, Tooltip } from './ui/design-system';
 import { APP_VERSION, CURRENT_PATCH } from '../../app/patchInfo';
 import { ScreenId, SCREEN_GROUPS } from '../rbac/screenIds';
 import { canView, getMyPermissions } from '../rbac/can';
@@ -25,23 +25,36 @@ interface SidebarItemProps {
   path: string;
   active: boolean;
   disabled?: boolean;
+  isComingSoon?: boolean;
+  diagnosticInfo?: string;
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, path, active, disabled }) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, path, active, disabled, isComingSoon, diagnosticInfo }) => {
   const content = (
-    <div className={`flex items-center justify-between px-3 py-2 rounded-md transition-all ${disabled ? 'opacity-40 cursor-not-allowed bg-slate-50 dark:bg-slate-800/30' : active ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'}`}>
+    <div className={`group flex items-center justify-between px-3 py-2 rounded-md transition-all ${disabled ? 'opacity-40 cursor-not-allowed bg-slate-50 dark:bg-slate-800/30' : active ? 'bg-primary/10 text-primary font-medium' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'}`}>
       <div className="flex items-center gap-3">
-        <Icon size={18} />
-        <span className="text-sm">{label}</span>
+        <Icon size={18} className={disabled ? 'text-slate-400' : ''} />
+        <span className="text-sm truncate">{label}</span>
       </div>
+      {isComingSoon && (
+        <Badge variant="outline" className="text-[7px] h-3 px-1 font-black bg-slate-100 dark:bg-slate-800 uppercase tracking-tighter">WIP</Badge>
+      )}
     </div>
   );
-  if (disabled) return <div title="Access Restricted">{content}</div>;
+
+  if (disabled) {
+    return (
+      <Tooltip content={diagnosticInfo || "This module is temporarily filtered out based on your current role or configuration."}>
+        <div className="w-full">{content}</div>
+      </Tooltip>
+    );
+  }
+
   return <Link to={path}>{content}</Link>;
 };
 
 /**
- * NAV CONFIG FOR PP-059
+ * NAV CONFIG FOR PP-060
  */
 interface NavGroup {
   label: string;
@@ -53,6 +66,10 @@ const NAV_STRUCTURE: NavGroup[] = [
   {
     label: 'Control Tower',
     screenIds: SCREEN_GROUPS.CONTROL_TOWER
+  },
+  {
+    label: 'Resolve',
+    screenIds: SCREEN_GROUPS.RESOLVE
   },
   {
     label: 'Observe',
@@ -95,7 +112,6 @@ export const Layout = () => {
   );
 
   const resolvePath = (id: ScreenId): string => {
-    // PP-059: Standardized to canonical route builders exclusively
     if (id === ScreenId.DASHBOARD) return routes.dashboard();
     if (id === ScreenId.TELEMETRY) return routes.telemetry();
     if (id === ScreenId.ANALYTICS) return routes.analytics();
@@ -113,11 +129,12 @@ export const Layout = () => {
     if (id === ScreenId.EOL_REVIEW) return routes.eolReview();
     if (id === ScreenId.SETTINGS) return routes.settings();
     if (id === ScreenId.EOL_SETUP) return routes.eolStationSetup();
-    if (id === ScreenId.PROVISIONING_STATION_SETUP) return routes.settings(); // Mock redirect or specific if added
+    if (id === ScreenId.PROVISIONING_STATION_SETUP) return ROUTES.PROVISIONING_SETUP;
     if (id === ScreenId.PROVISIONING_QUEUE) return ROUTES.PROVISIONING_QUEUE;
-    if (id === ScreenId.RUNBOOK_HUB) return routes.dashboard(); // Temp fallback or dedicated builder if exists
-    if (id === ScreenId.LINEAGE_VIEW) return routes.lineageAudit();
+    if (id === ScreenId.RUNBOOK_HUB) return ROUTES.RUNBOOKS;
+    if (id === ScreenId.LINEAGE_VIEW) return ROUTES.LINEAGE_AUDIT;
     if (id === ScreenId.CELL_LOTS_CREATE) return ROUTES.CELL_SERIALIZATION_NEW;
+    if (id === ScreenId.SKU_LIST) return routes.skuList();
 
     const config = APP_ROUTES[id];
     return config?.path || '#';
@@ -128,7 +145,6 @@ export const Layout = () => {
     if (location?.pathname) {
       routerSafe.trackRoute(location.pathname, location.search);
     }
-    // PP-059: Run Nav Validation once on boot
     navValidator.validate(NAV_STRUCTURE, resolvePath);
   }, [location]);
 
@@ -232,10 +248,12 @@ export const Layout = () => {
 
     if (group.screenIds) {
       const visibleItems = group.screenIds.filter(id => id && canView(currentCluster.id, id));
-      
-      // PP-059: Section Placeholder Rule
       const hasVisibleItems = visibleItems.length > 0;
       const originalCount = group.screenIds.length;
+
+      // Diagnostic message for empty sections
+      const hiddenIds = group.screenIds.filter(id => !canView(currentCluster.id, id));
+      const diagMsg = `Filtered: ${hiddenIds.join(', ')} (Incompatible Cluster: ${currentCluster.id})`;
 
       return (
         <div className="mb-6" key={group.label}>
@@ -244,10 +262,11 @@ export const Layout = () => {
             {hasVisibleItems ? renderNavItems(group.screenIds) : originalCount > 0 && (
               <SidebarItem 
                 icon={AlertTriangle} 
-                label="⚠ Section unavailable" 
+                label="Section temporarily unavailable" 
                 path={ROUTES.DASHBOARD} 
                 active={false} 
                 disabled={true} 
+                diagnosticInfo={diagMsg}
               />
             )}
           </div>
@@ -260,6 +279,9 @@ export const Layout = () => {
         const visibleItems = sg.screenIds.filter(id => id && canView(currentCluster.id, id));
         const hasVisibleItems = visibleItems.length > 0;
         const originalCount = sg.screenIds.length;
+        
+        const hiddenIds = sg.screenIds.filter(id => !canView(currentCluster.id, id));
+        const diagMsg = `Filtered: ${hiddenIds.join(', ')} (Cluster: ${currentCluster.id})`;
 
         if (!hasVisibleItems && originalCount === 0) return null;
 
@@ -274,10 +296,11 @@ export const Layout = () => {
               {hasVisibleItems ? renderNavItems(sg.screenIds) : (
                 <SidebarItem 
                   icon={AlertTriangle} 
-                  label="⚠ Sub-section unavailable" 
+                  label="Sub-section unavailable" 
                   path={ROUTES.DASHBOARD} 
                   active={false} 
                   disabled={true} 
+                  diagnosticInfo={diagMsg}
                 />
               )}
             </div>

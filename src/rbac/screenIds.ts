@@ -21,7 +21,6 @@ export enum ScreenId {
 
   // Design
   SKU_LIST = 'SKU_LIST',
-  /* Added SKU_DETAIL to fix ScreenId.SKU_DETAIL does not exist error */
   SKU_DETAIL = 'SKU_DETAIL',
 
   // Trace
@@ -40,7 +39,6 @@ export enum ScreenId {
   PROVISIONING_STATION_SETUP = 'PROVISIONING_STATION_SETUP',
   PROVISIONING_QUEUE = 'PROVISIONING_QUEUE',
   INVENTORY = 'INVENTORY',
-  /* Added INVENTORY_DETAIL to fix ScreenId.INVENTORY_DETAIL does not exist error */
   INVENTORY_DETAIL = 'INVENTORY_DETAIL',
   DISPATCH = 'DISPATCH', 
   DISPATCH_LIST = 'DISPATCH_LIST',
@@ -110,13 +108,33 @@ export enum ScreenId {
 }
 
 /**
- * Updated Groups for PP-058 Taxonomy
+ * SCREEN_GROUPS - IA Taxonomy strictly aligned with PP-060
  */
 export const SCREEN_GROUPS = {
-  CONTROL_TOWER: [ScreenId.RUNBOOK_HUB, ScreenId.COMPLIANCE, ScreenId.CUSTODY, ScreenId.WARRANTY, ScreenId.RBAC_VIEW],
-  OBSERVE: [ScreenId.DASHBOARD, ScreenId.TELEMETRY, ScreenId.ANALYTICS],
-  DESIGN: [ScreenId.SKU_LIST, ScreenId.EOL_SETUP, ScreenId.PROVISIONING_STATION_SETUP],
-  TRACE: [ScreenId.CELL_LOTS_LIST, ScreenId.CELL_LOTS_CREATE, ScreenId.LINEAGE_VIEW],
+  CONTROL_TOWER: [
+    ScreenId.RUNBOOK_HUB, 
+    ScreenId.COMPLIANCE, 
+    ScreenId.CUSTODY, 
+    ScreenId.RBAC_VIEW
+  ],
+  RESOLVE: [
+    ScreenId.WARRANTY
+  ],
+  OBSERVE: [
+    ScreenId.DASHBOARD, 
+    ScreenId.TELEMETRY, 
+    ScreenId.ANALYTICS
+  ],
+  DESIGN: [
+    ScreenId.SKU_LIST, 
+    ScreenId.EOL_SETUP, 
+    ScreenId.PROVISIONING_STATION_SETUP
+  ],
+  TRACE: [
+    ScreenId.CELL_LOTS_LIST, 
+    ScreenId.CELL_LOTS_CREATE, 
+    ScreenId.LINEAGE_VIEW
+  ],
   OPERATE_ASSEMBLY: [
     ScreenId.BATCHES_LIST, 
     ScreenId.MODULE_ASSEMBLY_LIST,
@@ -131,5 +149,8 @@ export const SCREEN_GROUPS = {
     ScreenId.EOL_QA_QUEUE, 
     ScreenId.EOL_REVIEW
   ],
-  ADMIN: [ScreenId.SETTINGS, ScreenId.RBAC_VIEW],
+  ADMIN: [
+    ScreenId.SETTINGS, 
+    ScreenId.RBAC_VIEW
+  ],
 };
