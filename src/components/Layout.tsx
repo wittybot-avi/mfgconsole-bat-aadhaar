@@ -219,7 +219,7 @@ export const Layout = () => {
           </div>
 
           <div className="p-4 border-t dark:border-slate-800 shrink-0">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3">
               <div className={`h-9 w-9 rounded-full flex items-center justify-center text-slate-500 ${isSuperUser ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' : 'bg-slate-200 dark:bg-slate-700'}`}>
                 <Users size={16} />
               </div>
@@ -227,10 +227,6 @@ export const Layout = () => {
                 <span className="text-sm font-medium truncate" title={currentRole.name}>{currentRole.name}</span>
                 <span className="text-xs text-slate-500 truncate">{currentCluster.id} Cluster</span>
               </div>
-            </div>
-            <div className="text-[10px] text-slate-400 dark:text-slate-600 font-mono leading-tight">
-              v{APP_VERSION} | P{CURRENT_PATCH.id}<br/>
-              {CURRENT_PATCH.name}
             </div>
           </div>
         </aside>
