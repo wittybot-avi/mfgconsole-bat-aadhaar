@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, Link, Outlet, useNavigate } from 'react-router-dom';
 import { 
-  Menu, Bell, Search, Users, LogOut, Zap, AlertTriangle, X, Database, Monitor, Tag, ChevronDown, ChevronUp, Shield
+  Menu, Bell, Search, Users, LogOut, Zap, AlertTriangle, X, Database, Monitor, Tag, ChevronDown, ChevronUp, Shield,
+  BookOpen, ShieldCheck, History, LayoutDashboard, Activity, BarChart3, Layers, Archive, Box, Truck, Settings, Fingerprint, Plus, Warehouse, ClipboardCheck, ClipboardList, FileText
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { Button, Input, Badge } from './ui/design-system';
@@ -37,6 +38,52 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, path, acti
   if (disabled) return <div title="Access Restricted">{content}</div>;
   return <Link to={path}>{content}</Link>;
 };
+
+/**
+ * NAV CONFIG FOR PP-058
+ */
+interface NavItem {
+  id: ScreenId;
+  label?: string;
+  icon?: any;
+}
+
+interface NavGroup {
+  label: string;
+  screenIds?: ScreenId[]; // Simple flat group
+  subGroups?: { label: string; screenIds: ScreenId[] }[]; // Nested sub-groups (for Operate)
+}
+
+const NAV_STRUCTURE: NavGroup[] = [
+  {
+    label: 'Control Tower',
+    screenIds: SCREEN_GROUPS.CONTROL_TOWER
+  },
+  {
+    label: 'Observe',
+    screenIds: SCREEN_GROUPS.OBSERVE
+  },
+  {
+    label: 'Design',
+    screenIds: SCREEN_GROUPS.DESIGN
+  },
+  {
+    label: 'Trace',
+    screenIds: SCREEN_GROUPS.TRACE
+  },
+  {
+    label: 'Operate',
+    subGroups: [
+      { label: 'Assembly', screenIds: SCREEN_GROUPS.OPERATE_ASSEMBLY },
+      { label: 'SCM', screenIds: SCREEN_GROUPS.OPERATE_SCM },
+      { label: 'Assure', screenIds: SCREEN_GROUPS.OPERATE_ASSURE },
+    ]
+  },
+  {
+    label: 'Admin',
+    screenIds: SCREEN_GROUPS.ADMIN
+  }
+];
 
 export const Layout = () => {
   const { theme, toggleTheme, currentRole, currentCluster, logout, sidebarOpen, toggleSidebar, addNotification } = useAppStore();
@@ -132,50 +179,116 @@ export const Layout = () => {
     localStorage.setItem('DIAG_OPEN', newState ? '1' : '0');
   };
 
-  const renderNavGroup = (groupName: string, screenIds: ScreenId[]) => {
-    if (!currentCluster) return null;
-    const visibleItems = screenIds.filter(id => id && canView(currentCluster.id, id));
+  const resolvePath = (id: ScreenId): string => {
+    const config = APP_ROUTES[id];
+    if (!config) return '#';
     
-    // PP-057: Empty Section Guard
-    if (visibleItems.length === 0) {
-      if (isDiagOpen) console.debug(`[Diag] NavGroupHidden: ${groupName} (0 visible items)`);
-      return null;
+    // Use canonical builders where possible
+    if (id === ScreenId.DASHBOARD) return routes.dashboard();
+    if (id === ScreenId.TELEMETRY) return routes.telemetry();
+    if (id === ScreenId.ANALYTICS) return routes.analytics();
+    if (id === ScreenId.EOL_QA_QUEUE) return routes.eolHome();
+    if (id === ScreenId.COMPLIANCE) return routes.compliance();
+    if (id === ScreenId.CUSTODY) return routes.custody();
+    if (id === ScreenId.WARRANTY) return routes.warrantyReturns();
+    if (id === ScreenId.RBAC_VIEW) return routes.accessAudit();
+    if (id === ScreenId.CELL_LOTS_LIST) return routes.cellSerialization();
+    if (id === ScreenId.BATCHES_LIST) return routes.batchesList();
+    if (id === ScreenId.MODULE_ASSEMBLY_LIST) return routes.moduleAssemblyList();
+    if (id === ScreenId.PACK_ASSEMBLY_LIST) return routes.packAssemblyList();
+    if (id === ScreenId.INVENTORY) return routes.inventoryList();
+    if (id === ScreenId.DISPATCH_LIST) return routes.dispatchList();
+    if (id === ScreenId.EOL_REVIEW) return routes.eolReview();
+    if (id === ScreenId.SETTINGS) return routes.settings();
+    if (id === ScreenId.EOL_SETUP) return routes.eolStationSetup();
+    if (id === ScreenId.PROVISIONING_STATION_SETUP) return ROUTES.PROVISIONING_SETUP;
+    if (id === ScreenId.PROVISIONING_QUEUE) return ROUTES.PROVISIONING_QUEUE;
+    if (id === ScreenId.RUNBOOK_HUB) return ROUTES.RUNBOOKS;
+    if (id === ScreenId.LINEAGE_VIEW) return ROUTES.LINEAGE_AUDIT;
+    if (id === ScreenId.CELL_LOTS_CREATE) return ROUTES.CELL_SERIALIZATION_NEW;
+
+    return config.path;
+  };
+
+  const renderNavItems = (ids: ScreenId[]) => {
+    if (!currentCluster) return null;
+    const visibleIds = ids.filter(id => id && canView(currentCluster.id, id));
+    
+    return visibleIds.map(id => {
+      const config = APP_ROUTES[id];
+      if (!config) return null;
+      if (id.includes('DETAIL') || id.includes('EDIT') || id.includes('_RUN') || id.includes('_TAB')) return null;
+      
+      const path = resolvePath(id);
+      const displayPath = path.includes(':') ? path.split('/:')[0] : path;
+      
+      let label = config.label;
+      if (id === ScreenId.RUNBOOK_HUB) label = 'SOP Library';
+      if (id === ScreenId.RBAC_VIEW) label = 'Access Audit';
+
+      return (
+        <SidebarItem 
+          key={id}
+          icon={config.icon} 
+          label={label} 
+          path={displayPath} 
+          active={location.pathname === displayPath || (location.pathname.startsWith(displayPath) && displayPath !== '/')}
+        />
+      );
+    });
+  };
+
+  const renderNavGroup = (group: NavGroup) => {
+    if (!currentCluster) return null;
+
+    // Logic for flat groups
+    if (group.screenIds) {
+      const visibleItems = group.screenIds.filter(id => id && canView(currentCluster.id, id));
+      if (visibleItems.length === 0) return null;
+
+      return (
+        <div className="mb-6" key={group.label}>
+          <h3 className="px-3 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-80">{group.label}</h3>
+          <div className="space-y-1">
+            {renderNavItems(group.screenIds)}
+          </div>
+        </div>
+      );
     }
 
-    return (
-      <div className="mb-6">
-        <h3 className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">{groupName}</h3>
-        <div className="space-y-1">
-          {visibleItems.map(id => {
-            const config = APP_ROUTES[id];
-            if (!config) return null;
-            if (id.includes('DETAIL') || id.includes('EDIT') || id.includes('_RUN') || id.includes('_TAB')) return null;
-            
-            // PP-057: Standardized Canonical Builders
-            let path = config.path;
-            if (id === ScreenId.DASHBOARD) path = routes.dashboard();
-            if (id === ScreenId.TELEMETRY) path = routes.telemetry();
-            if (id === ScreenId.ANALYTICS) path = routes.analytics();
-            if (id === ScreenId.EOL_QA_QUEUE) path = routes.eolHome();
-            if (id === ScreenId.COMPLIANCE) path = routes.compliance();
-            if (id === ScreenId.CUSTODY) path = routes.custody();
-            if (id === ScreenId.WARRANTY) path = routes.warrantyReturns();
-            if (id === ScreenId.RBAC_VIEW) path = routes.accessAudit();
-            
-            const displayPath = path.includes(':') ? path.split('/:')[0] : path;
-            return (
-              <SidebarItem 
-                key={id}
-                icon={config.icon} 
-                label={config.label} 
-                path={displayPath} 
-                active={location.pathname === displayPath || (location.pathname.startsWith(displayPath) && displayPath !== '/')}
-              />
-            );
-          })}
+    // Logic for groups with sub-groups (Operate)
+    if (group.subGroups) {
+      const subGroupElements = group.subGroups.map(sg => {
+        const visibleItems = sg.screenIds.filter(id => id && canView(currentCluster.id, id));
+        if (visibleItems.length === 0) return null;
+
+        return (
+          <div key={sg.label} className="mt-4 first:mt-0">
+            <h4 className="px-3 mb-1.5 text-[9px] font-bold text-slate-400/60 uppercase tracking-widest flex items-center gap-2">
+              <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
+              {sg.label}
+              <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
+            </h4>
+            <div className="space-y-1">
+              {renderNavItems(sg.screenIds)}
+            </div>
+          </div>
+        );
+      }).filter(Boolean);
+
+      if (subGroupElements.length === 0) return null;
+
+      return (
+        <div className="mb-6" key={group.label}>
+          <h3 className="px-3 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-80">{group.label}</h3>
+          <div className="space-y-1">
+            {subGroupElements}
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+
+    return null;
   };
 
   if (!currentRole || !currentCluster) return null;
@@ -216,15 +329,7 @@ export const Layout = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto py-6 px-3">
-            {renderNavGroup('SOP Guide', SCREEN_GROUPS.GUIDED)}
-            {renderNavGroup('Observe', SCREEN_GROUPS.OBSERVE)}
-            {renderNavGroup('Design', SCREEN_GROUPS.DESIGN)}
-            {renderNavGroup('Trace', SCREEN_GROUPS.TRACE)}
-            {renderNavGroup('Operate', SCREEN_GROUPS.OPERATE)}
-            {renderNavGroup('Assure', SCREEN_GROUPS.ASSURE)}
-            {renderNavGroup('Resolve', SCREEN_GROUPS.RESOLVE)}
-            {renderNavGroup('Govern', SCREEN_GROUPS.GOVERN)}
-            {renderNavGroup('Admin', SCREEN_GROUPS.ADMIN)}
+            {NAV_STRUCTURE.map(group => renderNavGroup(group))}
           </div>
 
           <div className="p-4 border-t dark:border-slate-800 shrink-0">

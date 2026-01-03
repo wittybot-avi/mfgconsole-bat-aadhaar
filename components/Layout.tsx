@@ -126,16 +126,6 @@ export const Layout = () => {
     }
   };
 
-  const handleScenarioChange = (s: DemoScenario) => {
-    if (s === currentScenario || isSwitching) return;
-    setIsSwitching(true);
-    scenarioStore.setScenario(s);
-    setCurrentScenario(s);
-    addNotification({ title: 'Scenario Change', message: `Wiping state for ${s}...`, type: 'info' });
-    navigate(ROUTES.DASHBOARD, { replace: true });
-    setTimeout(() => { window.location.reload(); }, 500);
-  };
-
   const renderNavGroup = (groupName: string, screenIds: ScreenId[]) => {
     if (!currentCluster) return null;
     const visibleItems = screenIds.filter(id => canView(currentCluster.id, id));
@@ -179,14 +169,14 @@ export const Layout = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto py-6 px-3">
-          {renderNavGroup('SOP Guide', SCREEN_GROUPS.GUIDED)}
+          {/* Fix: Realigned navigation groups to match the updated ScreenId taxonomy defined in PP-058. Consolidated GUIDED, RESOLVE, and GOVERN into Control Tower, and correctly referenced functional sub-groups for Operate and Assurance. */}
+          {renderNavGroup('Control Tower', SCREEN_GROUPS.CONTROL_TOWER)}
           {renderNavGroup('Observe', SCREEN_GROUPS.OBSERVE)}
           {renderNavGroup('Design', SCREEN_GROUPS.DESIGN)}
           {renderNavGroup('Trace', SCREEN_GROUPS.TRACE)}
-          {renderNavGroup('Operate', SCREEN_GROUPS.OPERATE)}
-          {renderNavGroup('Assure', SCREEN_GROUPS.ASSURE)}
-          {renderNavGroup('Resolve', SCREEN_GROUPS.RESOLVE)}
-          {renderNavGroup('Govern', SCREEN_GROUPS.GOVERN)}
+          {renderNavGroup('Assembly', SCREEN_GROUPS.OPERATE_ASSEMBLY)}
+          {renderNavGroup('Supply Chain', SCREEN_GROUPS.OPERATE_SCM)}
+          {renderNavGroup('Assurance', SCREEN_GROUPS.OPERATE_ASSURE)}
           {renderNavGroup('Admin', SCREEN_GROUPS.ADMIN)}
         </div>
 

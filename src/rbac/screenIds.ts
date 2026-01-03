@@ -109,23 +109,27 @@ export enum ScreenId {
   SYSTEM_HEALTH = 'SYSTEM_HEALTH'
 }
 
+/**
+ * Updated Groups for PP-058 Taxonomy
+ */
 export const SCREEN_GROUPS = {
-  GUIDED: [ScreenId.RUNBOOK_HUB],
+  CONTROL_TOWER: [ScreenId.RUNBOOK_HUB, ScreenId.COMPLIANCE, ScreenId.CUSTODY, ScreenId.WARRANTY, ScreenId.RBAC_VIEW],
   OBSERVE: [ScreenId.DASHBOARD, ScreenId.TELEMETRY, ScreenId.ANALYTICS],
-  DESIGN: [ScreenId.SKU_LIST],
-  TRACE: [ScreenId.CELL_LOTS_LIST, ScreenId.CELL_LOTS_CREATE, ScreenId.CELL_LOTS_DETAIL, ScreenId.LINEAGE_VIEW],
-  OPERATE: [
+  DESIGN: [ScreenId.SKU_LIST, ScreenId.EOL_SETUP, ScreenId.PROVISIONING_STATION_SETUP],
+  TRACE: [ScreenId.CELL_LOTS_LIST, ScreenId.CELL_LOTS_CREATE, ScreenId.LINEAGE_VIEW],
+  OPERATE_ASSEMBLY: [
     ScreenId.BATCHES_LIST, 
     ScreenId.MODULE_ASSEMBLY_LIST,
     ScreenId.PACK_ASSEMBLY_LIST,
-    ScreenId.BATTERIES_LIST, 
-    ScreenId.PROVISIONING_QUEUE,
-    ScreenId.PROVISIONING_STATION_SETUP, 
+    ScreenId.PROVISIONING_QUEUE
+  ],
+  OPERATE_SCM: [
     ScreenId.INVENTORY, 
     ScreenId.DISPATCH_LIST
   ],
-  ASSURE: [ScreenId.EOL_QA_QUEUE, ScreenId.EOL_SETUP, ScreenId.EOL_REVIEW],
-  RESOLVE: [ScreenId.WARRANTY],
-  GOVERN: [ScreenId.COMPLIANCE, ScreenId.CUSTODY],
+  OPERATE_ASSURE: [
+    ScreenId.EOL_QA_QUEUE, 
+    ScreenId.EOL_REVIEW
+  ],
   ADMIN: [ScreenId.SETTINGS, ScreenId.RBAC_VIEW],
 };
