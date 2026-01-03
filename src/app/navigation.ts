@@ -1,7 +1,7 @@
 import { NavigateFunction } from 'react-router-dom';
 import { routes } from '../../app/routes';
 import { ScreenId } from '../rbac/screenIds';
-import { isRouteRegistered } from '../../app/routeRegistry';
+import { isRouteRegistered, APP_ROUTES } from '../../app/routeRegistry';
 import { resolvePath } from './navAliases';
 
 export interface NavItem {
@@ -20,8 +20,49 @@ export interface NavSection {
 }
 
 /**
- * SAFE NAVIGATION HELPER (PP-061B)
- * Ensures all programmatic navigation is validated against the registry and aliases.
+ * CANONICAL PATH RESOLVER (PP-061B)
+ * Transforms ScreenId + Params into a concrete registered route.
+ */
+export function resolveCanonicalPath(screenId: ScreenId, params?: Record<string, string>): string {
+  const config = APP_ROUTES[screenId];
+  if (!config) {
+    console.error(`[NavGuardrail] CRITICAL: ScreenId "${screenId}" not found in route registry.`);
+    return '/';
+  }
+
+  let path = config.path;
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      path = path.replace(`:${key}`, encodeURIComponent(value));
+    });
+  }
+
+  // Fallback if placeholders still exist (missing params)
+  if (path.includes(':')) {
+    console.warn(`[NavGuardrail] Incomplete params for ${screenId}. Falling back to parent list.`);
+    // Try to find the non-parameterized version or return dashboard
+    return path.split('/:')[0] || '/';
+  }
+
+  return path;
+}
+
+/**
+ * CANONICAL NAVIGATION (PP-061B)
+ * Standard method for workstation/runbook navigation.
+ */
+export function navigateCanonical(
+  navigate: NavigateFunction, 
+  screenId: ScreenId, 
+  params?: Record<string, string>,
+  options?: { replace?: boolean; state?: any }
+) {
+  const resolved = resolveCanonicalPath(screenId, params);
+  navigate(resolved, options);
+}
+
+/**
+ * SAFE NAVIGATION HELPER (LEGACY/STRINGS)
  */
 export function safeNavigate(
   navigate: NavigateFunction, 
@@ -39,7 +80,7 @@ export function safeNavigate(
 }
 
 /**
- * SINGLE SOURCE OF TRUTH FOR SIDEBAR (PP-061A)
+ * SINGLE SOURCE OF TRUTH FOR SIDEBAR
  */
 export const NAV_SECTIONS: NavSection[] = [
   {

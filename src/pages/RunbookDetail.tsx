@@ -8,32 +8,34 @@ import { cellTraceabilityService } from '../services/cellTraceabilityService';
 import { dispatchService, batteryService } from '../services/api';
 import { packAssemblyService } from '../services/packAssemblyService';
 import { CellLot, DispatchOrder, PackInstance, Battery } from '../domain/types';
+import { ScreenId } from '../rbac/screenIds';
+import { navigateCanonical } from '../app/navigation';
 
-// Mock Step Definitions
+// Mock Step Definitions - PP-061B: Using ScreenIds for canonical mapping
 const RUNBOOK_STEPS: Record<string, any[]> = {
   'mfg-run': [
-    { id: 'S1', title: 'Design Definition', objective: 'Select and authorize SKU blueprint.', route: '/sku', role: 'Engineering' },
-    { id: 'S3', title: 'Batch Authorization', objective: 'Authorize production lot and release to floor.', route: '/batches', role: 'Supervisor' },
-    { id: 'S5', title: 'Module Integration', objective: 'Bind cell units to module lattice.', route: '/operate/modules', role: 'Operator' },
-    { id: 'S6', title: 'Pack Final Assembly', objective: 'Integrate modules and bind BMS.', route: '/operate/packs', role: 'Operator' },
-    { id: 'S7', title: 'EOL Testing', objective: 'Execute final electrical verification.', route: '/eol', role: 'QA' },
-    { id: 'S8', title: 'Battery Certification', objective: 'Generate digital twin and certify identity.', route: '/batteries', role: 'QA' },
-    { id: 'S9', title: 'Provisioning', objective: 'Pair BMS and apply config baseline.', route: '/provisioning', role: 'BMS Engineer' }
+    { id: 'S1', title: 'Design Definition', objective: 'Select and authorize SKU blueprint.', screenId: ScreenId.SKU_LIST, role: 'Engineering' },
+    { id: 'S3', title: 'Batch Authorization', objective: 'Authorize production lot and release to floor.', screenId: ScreenId.BATCHES_LIST, role: 'Supervisor' },
+    { id: 'S5', title: 'Module Integration', objective: 'Bind cell units to module lattice.', screenId: ScreenId.MODULE_ASSEMBLY_LIST, role: 'Operator' },
+    { id: 'S6', title: 'Pack Final Assembly', objective: 'Integrate modules and bind BMS.', screenId: ScreenId.PACK_ASSEMBLY_LIST, role: 'Operator' },
+    { id: 'S7', title: 'EOL Testing', objective: 'Execute final electrical verification.', screenId: ScreenId.EOL_QA_QUEUE, role: 'QA' },
+    { id: 'S8', title: 'Battery Certification', objective: 'Generate digital twin and certify identity.', screenId: ScreenId.BATTERIES_LIST, role: 'QA' },
+    { id: 'S9', title: 'Provisioning', objective: 'Pair BMS and apply config baseline.', screenId: ScreenId.PROVISIONING_QUEUE, role: 'BMS Engineer' }
   ],
   'cell-receipt': [
-    { id: 'S2', title: 'Inbound Documentation', objective: 'Register shipment and capture PO/GRN identifiers.', route: '/trace/cells', role: 'Logistics' },
-    { id: 'S2', title: 'Lot Serialization', objective: 'Generate unique cell identities.', route: '/trace/cells', role: 'Logistics' },
-    { id: 'S4', title: 'Identity Verification', objective: 'Confirm physical serial numbers via scanner.', route: '/trace/cells', role: 'Operator' }
+    { id: 'S2', title: 'Inbound Documentation', objective: 'Register shipment and capture PO/GRN identifiers.', screenId: ScreenId.CELL_LOTS_LIST, role: 'Logistics' },
+    { id: 'S2', title: 'Lot Serialization', objective: 'Generate unique cell identities.', screenId: ScreenId.CELL_LOTS_LIST, role: 'Logistics' },
+    { id: 'S4', title: 'Identity Verification', objective: 'Confirm physical serial numbers via scanner.', screenId: ScreenId.CELL_LOTS_LIST, role: 'Operator' }
   ],
   'logistics-transfer': [
-    { id: 'S10', title: 'Inventory Reservation', objective: 'Allocate certified packs to shipment.', route: '/inventory', role: 'Logistics' },
-    { id: 'S11', title: 'Dispatch Planning', objective: 'Prepare manifest and transport docs.', route: '/dispatch', role: 'Logistics' },
-    { id: 'S12', title: 'Custody Transfer', objective: 'Formal sign-off at destination dock.', route: '/custody', role: 'External' }
+    { id: 'S10', title: 'Inventory Reservation', objective: 'Allocate certified packs to shipment.', screenId: ScreenId.INVENTORY, role: 'Logistics' },
+    { id: 'S11', title: 'Dispatch Planning', objective: 'Prepare manifest and transport docs.', screenId: ScreenId.DISPATCH_LIST, role: 'Logistics' },
+    { id: 'S12', title: 'Custody Transfer', objective: 'Formal sign-off at destination dock.', screenId: ScreenId.CUSTODY, role: 'External' }
   ],
   'warranty-claims': [
-    { id: 'S13', title: 'Claim Intake', objective: 'Submit field report with evidence.', route: '/warranty/intake', role: 'External' },
-    { id: 'S14', title: 'Technical RCA', objective: 'Analyze telemetry and physical state.', route: '/warranty', role: 'Engineering' },
-    { id: 'S15', title: 'Final Disposition', objective: 'Repair/Replace/Scrap decision.', route: '/warranty', role: 'Supervisor' }
+    { id: 'S13', title: 'Claim Intake', objective: 'Submit field report with evidence.', screenId: ScreenId.WARRANTY_EXTERNAL_INTAKE, role: 'External' },
+    { id: 'S14', title: 'Technical RCA', objective: 'Analyze telemetry and physical state.', screenId: ScreenId.WARRANTY, role: 'Engineering' },
+    { id: 'S15', title: 'Final Disposition', objective: 'Repair/Replace/Scrap decision.', screenId: ScreenId.WARRANTY, role: 'Supervisor' }
   ]
 };
 
@@ -61,22 +63,39 @@ export default function RunbookDetail() {
     } else if (runbookId === 'logistics-transfer') {
         dispatchService.getOrders().then(setContextList);
     } else if (runbookId === 'mfg-run') {
-        // Show packs for execution run context
         packAssemblyService.listPacks().then(setContextList);
     }
   }, [runbookId]);
 
   if (!runbookId || !meta) return <div className="p-20 text-center">Runbook not found.</div>;
 
-  const handleRoute = (baseRoute: string) => {
-      let target = baseRoute;
+  const handleStepNavigate = (step: any) => {
+      // Logic for contextual detail vs list
+      let params: Record<string, string> | undefined = undefined;
+      let finalScreenId = step.screenId;
+
       if (selectedContextId) {
-          if (baseRoute.includes('/eol')) target = `/assure/eol/${selectedContextId}`;
-          else if (baseRoute.includes('/provisioning')) target = `/provisioning?batteryId=${selectedContextId}`;
-          else if (baseRoute.includes('/operate/packs')) target = `/operate/packs/${selectedContextId}`;
-          else target = `${baseRoute}/${selectedContextId}`;
+          params = { 
+            lotId: selectedContextId, 
+            id: selectedContextId, 
+            buildId: selectedContextId, 
+            batteryId: selectedContextId,
+            claimId: selectedContextId,
+            dispatchId: selectedContextId
+          };
+          
+          // Smart detour to detail screens if context exists
+          if (step.screenId === ScreenId.SKU_LIST) finalScreenId = ScreenId.SKU_DETAIL;
+          if (step.screenId === ScreenId.BATCHES_LIST) finalScreenId = ScreenId.BATCHES_DETAIL;
+          if (step.screenId === ScreenId.MODULE_ASSEMBLY_LIST) finalScreenId = ScreenId.MODULE_ASSEMBLY_DETAIL;
+          if (step.screenId === ScreenId.PACK_ASSEMBLY_LIST) finalScreenId = ScreenId.PACK_ASSEMBLY_DETAIL;
+          if (step.screenId === ScreenId.BATTERIES_LIST) finalScreenId = ScreenId.BATTERIES_DETAIL;
+          if (step.screenId === ScreenId.EOL_QA_QUEUE) finalScreenId = ScreenId.EOL_DETAILS;
+          if (step.screenId === ScreenId.INVENTORY) finalScreenId = ScreenId.INVENTORY_DETAIL;
+          if (step.screenId === ScreenId.DISPATCH_LIST) finalScreenId = ScreenId.DISPATCH_DETAIL;
       }
-      navigate(target);
+
+      navigateCanonical(navigate, finalScreenId, params);
   };
 
   return (
@@ -169,7 +188,7 @@ export default function RunbookDetail() {
                                     <p className="text-xs text-rose-700 dark:text-rose-400 font-medium">{reason}</p>
                                 </div>
                             ) : (
-                                <Button onClick={() => handleRoute(step.route)} size="sm" variant="outline" className="gap-2 hover:bg-primary hover:text-white transition-colors">
+                                <Button onClick={() => handleStepNavigate(step)} size="sm" variant="outline" className="gap-2 hover:bg-primary hover:text-white transition-colors">
                                     Go to Workstation <ExternalLink size={14} />
                                 </Button>
                             )}

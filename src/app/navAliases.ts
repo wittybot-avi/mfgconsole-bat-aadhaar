@@ -19,6 +19,8 @@ export const NAV_ALIASES: Record<string, string> = {
   '/analytics': ROUTES.ANALYTICS,
   '/provisioning': ROUTES.PROVISIONING_QUEUE,
   '/control-tower': ROUTES.RUNBOOKS,
+  '/trace': ROUTES.CELL_SERIALIZATION,
+  '/cells': ROUTES.CELL_SERIALIZATION,
 };
 
 /**
@@ -36,7 +38,7 @@ export function resolvePath(path: string): string {
   // Check direct alias
   if (NAV_ALIASES[normalized]) return NAV_ALIASES[normalized];
 
-  // Handle parameterized legacy patterns
+  // Handle parameterized legacy patterns (PP-061B Hardened)
   if (normalized.startsWith('/batches/')) {
     return normalized.replace('/batches/', '/operate/batches/');
   }
@@ -48,6 +50,9 @@ export function resolvePath(path: string): string {
   }
   if (normalized.startsWith('/sku/')) {
     return normalized.replace('/sku/', '/design/sku/');
+  }
+  if (normalized.startsWith('/dispatch/')) {
+    return normalized.replace('/dispatch/', '/operate/dispatch/');
   }
 
   return normalized;

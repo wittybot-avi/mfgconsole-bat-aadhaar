@@ -5,8 +5,7 @@ import { Button, Badge, Card, CardContent, Tooltip } from './ui/design-system';
 import { workflowGuardrails, STATUS_MAP, GuardrailResult, NextStep } from '../services/workflowGuardrails';
 import { Lightbulb, ShieldCheck, Lock, ArrowRight, User, Info, Loader2 } from 'lucide-react';
 import { logger } from '../utils/logger';
-// Fixed: Removed unused and non-existent import assertPathRegistered to resolve compiler error.
-import { safeNavigate } from '../app/navigation';
+import { navigateCanonical } from '../app/navigation';
 
 // --- StageHeader Component ---
 interface StageHeaderProps {
@@ -82,9 +81,7 @@ export const NextStepsPanel: React.FC<NextStepsPanelProps> = ({ entity, type, cl
   if (!step) return null;
 
   const handleNavigate = () => {
-    if (step.path) {
-      safeNavigate(navigate, step.path);
-    }
+    navigateCanonical(navigate, step.screenId, step.params);
   };
 
   return (
@@ -99,18 +96,16 @@ export const NextStepsPanel: React.FC<NextStepsPanelProps> = ({ entity, type, cl
             <Badge variant="secondary" className="text-[9px] uppercase tracking-wider bg-indigo-200/50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 h-4">{step.roleRequired}</Badge>
           </div>
           <p className="text-xs text-indigo-700/80 dark:text-indigo-300/60 leading-relaxed">{step.description}</p>
-          {step.path && (
-            <div className="pt-2">
-              <Button 
-                size="sm" 
-                variant="link" 
-                className="p-0 h-auto text-indigo-600 dark:text-indigo-400 font-bold gap-1.5 hover:gap-2 transition-all"
-                onClick={handleNavigate}
-              >
-                Go to {step.label} <ArrowRight size={14} />
-              </Button>
-            </div>
-          )}
+          <div className="pt-2">
+            <Button 
+              size="sm" 
+              variant="link" 
+              className="p-0 h-auto text-indigo-600 dark:text-indigo-400 font-bold gap-1.5 hover:gap-2 transition-all"
+              onClick={handleNavigate}
+            >
+              Go to {step.label} <ArrowRight size={14} />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

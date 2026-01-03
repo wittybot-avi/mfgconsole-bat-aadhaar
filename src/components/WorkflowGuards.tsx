@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Tooltip, Card, CardContent, Badge } from './ui/design-system';
 import { GuardrailResult, NextStep } from '../services/workflowGuardrails';
 import { Lightbulb, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
+/* Fix: Import navigateCanonical to correctly handle ScreenId-based navigation from NextStep objects. */
+import { navigateCanonical } from '../app/navigation';
 
 interface GatedActionProps {
   guard: GuardrailResult;
@@ -55,13 +57,15 @@ export const NextStepPanel: React.FC<{ step: NextStep | null }> = ({ step }) => 
             <Badge variant="secondary" className="text-[9px] uppercase tracking-tighter">{step.roleRequired}</Badge>
           </div>
           <p className="text-xs text-indigo-700/70 dark:text-indigo-400">{step.description}</p>
-          {step.path && (
+          {/* Fix: Checked for screenId instead of non-existent path property on NextStep interface. */}
+          {step.screenId && (
             <div className="pt-2">
               <Button 
                 size="sm" 
                 variant="link" 
                 className="p-0 h-auto text-indigo-600 font-bold gap-1"
-                onClick={() => navigate(step.path)}
+                /* Fix: Used navigateCanonical helper to resolve the path from ScreenId and params. */
+                onClick={() => navigateCanonical(navigate, step.screenId, step.params)}
               >
                 Go to {step.label} <ArrowRight size={14} />
               </Button>
