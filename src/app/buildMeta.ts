@@ -1,5 +1,5 @@
 /**
- * BUILD METADATA - SINGLE SOURCE OF TRUTH (PP-058)
+ * BUILD METADATA - SINGLE SOURCE OF TRUTH (PP-059)
  */
 
 export interface PatchHistoryEntry {
@@ -10,25 +10,25 @@ export interface PatchHistoryEntry {
 
 export const buildMeta = {
   appVersion: '1.8.9n',
-  patchId: 'PP-058',
-  patchName: 'NAV_RESTRUCTURE_TO_TARGET_TAXONOMY',
+  patchId: 'PP-059',
+  patchName: 'NAV_GUARDRAILS_AND_REGISTRY_CONSISTENCY',
   updatedAt: '2024-05-24',
   changeNotes: [
-    'Restructured sidebar navigation to agreed target taxonomy: Control Tower, Observe, Design, Trace, Operate, and Admin.',
-    'Implemented visual sub-grouping within the Operate section (Assembly, SCM, Assure).',
-    'Relocated setup and configuration screens (EOL Setup, Provisioning Setup) under the Design section.',
-    'Consolidated SOP Library and Governance into the Control Tower.',
-    'Maintained empty-section guards to ensure a clean UI footprint across different RBAC clusters.',
-    'Updated build metadata to single source of truth PP-058'
+    'Implemented runtime navigation validator to detect drift between sidebar configuration and route registry.',
+    'Enhanced sidebar resilience with "Section unavailable" placeholders to prevent silent item disappearance.',
+    'Standardized all navigation items to use canonical route builders from routes.ts exclusively.',
+    'Added top-level module coverage patterns to routeRegistry to prevent Unknown Coordinates at root paths.',
+    'Exposed navigation drift warnings directly in the Unified Diagnostic Panel for faster debugging.',
+    'Updated build metadata to single source of truth PP-059'
   ],
   history: [
+    { patchId: 'PP-059', patchName: 'NAV_GUARDRAILS_AND_REGISTRY_CONSISTENCY', updatedAt: '2024-05-24' },
     { patchId: 'PP-058', patchName: 'NAV_RESTRUCTURE_TO_TARGET_TAXONOMY', updatedAt: '2024-05-24' },
     { patchId: 'PP-057', patchName: 'RESTORE_MISSING_SCREENS_AND_SECTION_GUARDS', updatedAt: '2024-05-24' },
     { patchId: 'PPP-056F', patchName: 'HUD_BUILD_META_TRACKER', updatedAt: '2024-05-24' },
     { patchId: 'PP-056E', patchName: 'OBSERVE_RESTORATION', updatedAt: '2024-05-24' },
     { patchId: 'PP-056D', patchName: 'BATCH_TO_MODULE', updatedAt: '2024-05-24' },
     { patchId: 'PP-056C', patchName: 'CANONICAL_NAVIGATION', updatedAt: '2024-05-24' },
-    { patchId: 'PP-056B', patchName: 'DIAGNOSTIC_CONSOLIDATION', updatedAt: '2024-05-24' },
-    { patchId: 'P-056A', patchName: 'WHITESCREEN_BOOT_GUARD', updatedAt: '2024-05-24' }
+    { patchId: 'PP-056B', patchName: 'DIAGNOSTIC_CONSOLIDATION', updatedAt: '2024-05-24' }
   ] as PatchHistoryEntry[]
 };

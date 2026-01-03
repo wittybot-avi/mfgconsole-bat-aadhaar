@@ -17,6 +17,7 @@ import { scenarioStore, DemoScenario } from '../demo/scenarioStore';
 import { routerSafe } from '../utils/routerSafe';
 import { HudPill } from './HudPill';
 import { UnifiedDiagnosticPanel } from './UnifiedDiagnosticPanel';
+import { navValidator } from '../app/navValidation';
 
 interface SidebarItemProps {
   icon: any;
@@ -40,18 +41,12 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, path, acti
 };
 
 /**
- * NAV CONFIG FOR PP-058
+ * NAV CONFIG FOR PP-059
  */
-interface NavItem {
-  id: ScreenId;
-  label?: string;
-  icon?: any;
-}
-
 interface NavGroup {
   label: string;
-  screenIds?: ScreenId[]; // Simple flat group
-  subGroups?: { label: string; screenIds: ScreenId[] }[]; // Nested sub-groups (for Operate)
+  screenIds?: ScreenId[];
+  subGroups?: { label: string; screenIds: ScreenId[] }[];
 }
 
 const NAV_STRUCTURE: NavGroup[] = [
@@ -99,11 +94,42 @@ export const Layout = () => {
     location.search.includes('diag=1') || localStorage.getItem('DIAG_OPEN') === '1'
   );
 
+  const resolvePath = (id: ScreenId): string => {
+    // PP-059: Standardized to canonical route builders exclusively
+    if (id === ScreenId.DASHBOARD) return routes.dashboard();
+    if (id === ScreenId.TELEMETRY) return routes.telemetry();
+    if (id === ScreenId.ANALYTICS) return routes.analytics();
+    if (id === ScreenId.EOL_QA_QUEUE) return routes.eolHome();
+    if (id === ScreenId.COMPLIANCE) return routes.compliance();
+    if (id === ScreenId.CUSTODY) return routes.custody();
+    if (id === ScreenId.WARRANTY) return routes.warrantyReturns();
+    if (id === ScreenId.RBAC_VIEW) return routes.accessAudit();
+    if (id === ScreenId.CELL_LOTS_LIST) return routes.cellSerialization();
+    if (id === ScreenId.BATCHES_LIST) return routes.batchesList();
+    if (id === ScreenId.MODULE_ASSEMBLY_LIST) return routes.moduleAssemblyList();
+    if (id === ScreenId.PACK_ASSEMBLY_LIST) return routes.packAssemblyList();
+    if (id === ScreenId.INVENTORY) return routes.inventoryList();
+    if (id === ScreenId.DISPATCH_LIST) return routes.dispatchList();
+    if (id === ScreenId.EOL_REVIEW) return routes.eolReview();
+    if (id === ScreenId.SETTINGS) return routes.settings();
+    if (id === ScreenId.EOL_SETUP) return routes.eolStationSetup();
+    if (id === ScreenId.PROVISIONING_STATION_SETUP) return routes.settings(); // Mock redirect or specific if added
+    if (id === ScreenId.PROVISIONING_QUEUE) return ROUTES.PROVISIONING_QUEUE;
+    if (id === ScreenId.RUNBOOK_HUB) return routes.dashboard(); // Temp fallback or dedicated builder if exists
+    if (id === ScreenId.LINEAGE_VIEW) return routes.lineageAudit();
+    if (id === ScreenId.CELL_LOTS_CREATE) return ROUTES.CELL_SERIALIZATION_NEW;
+
+    const config = APP_ROUTES[id];
+    return config?.path || '#';
+  };
+
   useEffect(() => {
     scenarioStore.init();
     if (location?.pathname) {
       routerSafe.trackRoute(location.pathname, location.search);
     }
+    // PP-059: Run Nav Validation once on boot
+    navValidator.validate(NAV_STRUCTURE, resolvePath);
   }, [location]);
 
   // Sync diag state from URL
@@ -118,9 +144,6 @@ export const Layout = () => {
     navigate(ROUTES.LOGIN);
   };
 
-  /**
-   * DETERMINISTIC SEARCH RESOLVER (PP-056E)
-   */
   const handleGlobalSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     const query = searchQuery.trim().toUpperCase();
@@ -129,12 +152,10 @@ export const Layout = () => {
     setSearching(true);
     
     try {
-        // Deterministic prefix matching
         if (query.startsWith('LOT-') || query.includes('LFP') || query.includes('NMC')) {
             navigate(`${routes.cellSerialization() || '/trace/cells'}?q=${query}`);
         }
         else if (query.startsWith('PB-') || query.startsWith('PACK-')) {
-            // Prefer detail if exact match (mocking detail availability)
             if (query.length > 5) navigate(routes.packBuildDetails(query));
             else navigate(`${routes.packAssemblyList()}?q=${query}`);
         }
@@ -147,7 +168,6 @@ export const Layout = () => {
             else navigate(`${routes.inventoryList()}?q=${query}`);
         }
         else {
-            // General resolution
             const resolution = await traceSearchService.resolveIdentifier(searchQuery);
             if (resolution) {
                 navigate(resolution.route);
@@ -177,37 +197,6 @@ export const Layout = () => {
     const newState = !isDiagOpen;
     setIsDiagOpen(newState);
     localStorage.setItem('DIAG_OPEN', newState ? '1' : '0');
-  };
-
-  const resolvePath = (id: ScreenId): string => {
-    const config = APP_ROUTES[id];
-    if (!config) return '#';
-    
-    // Use canonical builders where possible
-    if (id === ScreenId.DASHBOARD) return routes.dashboard();
-    if (id === ScreenId.TELEMETRY) return routes.telemetry();
-    if (id === ScreenId.ANALYTICS) return routes.analytics();
-    if (id === ScreenId.EOL_QA_QUEUE) return routes.eolHome();
-    if (id === ScreenId.COMPLIANCE) return routes.compliance();
-    if (id === ScreenId.CUSTODY) return routes.custody();
-    if (id === ScreenId.WARRANTY) return routes.warrantyReturns();
-    if (id === ScreenId.RBAC_VIEW) return routes.accessAudit();
-    if (id === ScreenId.CELL_LOTS_LIST) return routes.cellSerialization();
-    if (id === ScreenId.BATCHES_LIST) return routes.batchesList();
-    if (id === ScreenId.MODULE_ASSEMBLY_LIST) return routes.moduleAssemblyList();
-    if (id === ScreenId.PACK_ASSEMBLY_LIST) return routes.packAssemblyList();
-    if (id === ScreenId.INVENTORY) return routes.inventoryList();
-    if (id === ScreenId.DISPATCH_LIST) return routes.dispatchList();
-    if (id === ScreenId.EOL_REVIEW) return routes.eolReview();
-    if (id === ScreenId.SETTINGS) return routes.settings();
-    if (id === ScreenId.EOL_SETUP) return routes.eolStationSetup();
-    if (id === ScreenId.PROVISIONING_STATION_SETUP) return ROUTES.PROVISIONING_SETUP;
-    if (id === ScreenId.PROVISIONING_QUEUE) return ROUTES.PROVISIONING_QUEUE;
-    if (id === ScreenId.RUNBOOK_HUB) return ROUTES.RUNBOOKS;
-    if (id === ScreenId.LINEAGE_VIEW) return ROUTES.LINEAGE_AUDIT;
-    if (id === ScreenId.CELL_LOTS_CREATE) return ROUTES.CELL_SERIALIZATION_NEW;
-
-    return config.path;
   };
 
   const renderNavItems = (ids: ScreenId[]) => {
@@ -241,26 +230,38 @@ export const Layout = () => {
   const renderNavGroup = (group: NavGroup) => {
     if (!currentCluster) return null;
 
-    // Logic for flat groups
     if (group.screenIds) {
       const visibleItems = group.screenIds.filter(id => id && canView(currentCluster.id, id));
-      if (visibleItems.length === 0) return null;
+      
+      // PP-059: Section Placeholder Rule
+      const hasVisibleItems = visibleItems.length > 0;
+      const originalCount = group.screenIds.length;
 
       return (
         <div className="mb-6" key={group.label}>
           <h3 className="px-3 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-80">{group.label}</h3>
           <div className="space-y-1">
-            {renderNavItems(group.screenIds)}
+            {hasVisibleItems ? renderNavItems(group.screenIds) : originalCount > 0 && (
+              <SidebarItem 
+                icon={AlertTriangle} 
+                label="⚠ Section unavailable" 
+                path={ROUTES.DASHBOARD} 
+                active={false} 
+                disabled={true} 
+              />
+            )}
           </div>
         </div>
       );
     }
 
-    // Logic for groups with sub-groups (Operate)
     if (group.subGroups) {
       const subGroupElements = group.subGroups.map(sg => {
         const visibleItems = sg.screenIds.filter(id => id && canView(currentCluster.id, id));
-        if (visibleItems.length === 0) return null;
+        const hasVisibleItems = visibleItems.length > 0;
+        const originalCount = sg.screenIds.length;
+
+        if (!hasVisibleItems && originalCount === 0) return null;
 
         return (
           <div key={sg.label} className="mt-4 first:mt-0">
@@ -270,7 +271,15 @@ export const Layout = () => {
               <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
             </h4>
             <div className="space-y-1">
-              {renderNavItems(sg.screenIds)}
+              {hasVisibleItems ? renderNavItems(sg.screenIds) : (
+                <SidebarItem 
+                  icon={AlertTriangle} 
+                  label="⚠ Sub-section unavailable" 
+                  path={ROUTES.DASHBOARD} 
+                  active={false} 
+                  disabled={true} 
+                />
+              )}
             </div>
           </div>
         );

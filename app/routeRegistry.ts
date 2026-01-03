@@ -1,5 +1,5 @@
 import { 
-  LayoutDashboard, Activity, BarChart3, Layers, Archive, ClipboardList, ClipboardCheck, Search, Box, Truck, ShieldCheck, History, Settings, Shield, Zap, Cpu, FileText, Warehouse, FileSpreadsheet, BookOpen, Map, Globe, Leaf, Recycle, Fingerprint, Play, Plus
+  LayoutDashboard, Activity, BarChart3, Layers, Archive, ClipboardList, ClipboardCheck, Search, Box, Truck, ShieldCheck, History, Settings, Shield, Zap, Cpu, FileText, Warehouse, FileSpreadsheet, BookOpen, Map, Globe, Leaf, Recycle, Fingerprint, Play, Plus, AlertTriangle
 } from 'lucide-react';
 import { ScreenId } from '../src/rbac/screenIds';
 import { matchPath } from 'react-router-dom';
@@ -72,6 +72,16 @@ export const APP_ROUTES: Record<string, RouteConfig> = {
   // Guided
   [ScreenId.RUNBOOK_HUB]: { icon: BookOpen, label: 'Runbooks', path: ROUTES.RUNBOOKS, screenId: ScreenId.RUNBOOK_HUB, componentName: 'RunbookHub.tsx' },
   [ScreenId.RUNBOOK_DETAIL]: { icon: Map, label: 'Runbook Detail', path: ROUTES.RUNBOOK_DETAIL, screenId: ScreenId.RUNBOOK_DETAIL, componentName: 'RunbookDetail.tsx' },
+
+  // PP-059: Module Coverage List (Explicit patterns for base paths)
+  'observe-base': { icon: Activity, label: 'Observe Base', path: '/observe/*', screenId: ScreenId.TELEMETRY, componentName: 'INTERNAL' },
+  'design-base': { icon: Layers, label: 'Design Base', path: '/design/*', screenId: ScreenId.SKU_LIST, componentName: 'INTERNAL' },
+  'trace-base': { icon: Archive, label: 'Trace Base', path: '/trace/*', screenId: ScreenId.CELL_LOTS_LIST, componentName: 'INTERNAL' },
+  'operate-base': { icon: Box, label: 'Operate Base', path: '/operate/*', screenId: ScreenId.BATCHES_LIST, componentName: 'INTERNAL' },
+  'assure-base': { icon: ClipboardCheck, label: 'Assure Base', path: '/assure/*', screenId: ScreenId.EOL_QA_QUEUE, componentName: 'INTERNAL' },
+  'admin-base': { icon: Settings, label: 'Admin Base', path: '/admin/*', screenId: ScreenId.SETTINGS, componentName: 'INTERNAL' },
+  'govern-base': { icon: ShieldCheck, label: 'Govern Base', path: '/govern/*', screenId: ScreenId.COMPLIANCE, componentName: 'INTERNAL' },
+  'resolve-base': { icon: FileText, label: 'Resolve Base', path: '/resolve/*', screenId: ScreenId.WARRANTY, componentName: 'INTERNAL' },
 };
 
 /**
@@ -83,7 +93,6 @@ export function getScreenIdForPath(pathname: string | null | undefined): ScreenI
     const match = (Object.values(APP_ROUTES) as RouteConfig[]).find(config => 
       !!matchPath({ path: config.path || '', end: true }, pathname)
     );
-    // Return explicit screenId if matched, otherwise undefined to trigger safe-not-found
     return match?.screenId;
   } catch (e) {
     return undefined;
@@ -91,5 +100,12 @@ export function getScreenIdForPath(pathname: string | null | undefined): ScreenI
 }
 
 export function isRouteRegistered(pathname: string): boolean {
-  return !!getScreenIdForPath(pathname);
+  if (!pathname) return false;
+  try {
+    return (Object.values(APP_ROUTES) as RouteConfig[]).some(config => 
+      !!matchPath({ path: config.path || '', end: true }, pathname)
+    );
+  } catch (e) {
+    return false;
+  }
 }

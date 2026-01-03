@@ -1,6 +1,7 @@
 import React from 'react';
-import { Monitor, Database, Shield, ChevronDown, ChevronUp, Tag, AlertTriangle, X } from 'lucide-react';
+import { Monitor, Database, Shield, ChevronDown, ChevronUp, Tag, AlertTriangle, X, Compass } from 'lucide-react';
 import { Badge } from './ui/design-system';
+import { navValidator } from '../app/navValidation';
 
 interface UnifiedDiagnosticPanelProps {
   isOpen: boolean;
@@ -33,6 +34,8 @@ export const UnifiedDiagnosticPanel: React.FC<UnifiedDiagnosticPanelProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const navWarnings = navValidator.getWarnings();
+
   return (
     <div className="bg-slate-900 border-b border-slate-700 text-white font-mono text-[10px] overflow-hidden shrink-0 z-[100] animate-in slide-in-from-top duration-200">
       <div 
@@ -48,6 +51,7 @@ export const UnifiedDiagnosticPanel: React.FC<UnifiedDiagnosticPanelProps> = ({
           <span className="text-slate-300 font-bold">{componentName || screenId || 'UNKNOWN'}</span>
         </div>
         <div className="flex items-center gap-3">
+          {navWarnings.length > 0 && <Badge variant="warning" className="h-4 text-[8px] font-black uppercase">{navWarnings.length} Nav Drift</Badge>}
           {!isRegistered && <Badge variant="destructive" className="h-4 text-[8px] font-black uppercase">Unregistered</Badge>}
           <ChevronUp size={14} className="text-slate-500" />
         </div>
@@ -67,7 +71,7 @@ export const UnifiedDiagnosticPanel: React.FC<UnifiedDiagnosticPanelProps> = ({
           </div>
         </div>
 
-        {/* Column 2: Context */}
+        {/* Column 2: Context & Nav Drift */}
         <div className="space-y-3">
           <h4 className="font-black text-slate-500 uppercase tracking-tighter flex items-center gap-2 border-b border-slate-800 pb-1">
             <Shield size={10} className="text-blue-400" /> Context
@@ -75,8 +79,19 @@ export const UnifiedDiagnosticPanel: React.FC<UnifiedDiagnosticPanelProps> = ({
           <div className="space-y-1.5">
             <p className="flex justify-between"><span className="text-slate-500">Role:</span> <span className="text-slate-300">{role}</span></p>
             <p className="flex justify-between"><span className="text-slate-500">Cluster:</span> <span className="text-amber-400">{cluster}</span></p>
-            <p className="flex justify-between"><span className="text-slate-500">Access:</span> <span className={permissions.length > 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>{permissions.length > 0 ? 'ALLOWED' : 'DENIED'}</span></p>
-            <p className="flex justify-between max-w-full overflow-hidden"><span className="text-slate-500">Verbs:</span> <span className="text-indigo-300 truncate">[{permissions.join(', ')}]</span></p>
+            
+            {navWarnings.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-slate-800">
+                    <h5 className="text-[8px] font-black text-rose-500 uppercase flex items-center gap-1 mb-1">
+                        <Compass size={8} /> Nav Drift Detected
+                    </h5>
+                    {navWarnings.map((w, i) => (
+                        <p key={i} className="text-[8px] text-rose-300/70 truncate" title={w.path}>
+                            • {w.label}: {w.path}
+                        </p>
+                    ))}
+                </div>
+            )}
           </div>
         </div>
 
